@@ -1,163 +1,109 @@
-"use client";
+import Link from "next/link";
+import MediaCard from "@/components/MediaCard";
+import { CATEGORY_META } from "@/lib/constants";
+import { getPopularForType } from "@/lib/popular";
+import { MEDIA_TYPES, type UnifiedMediaItem } from "@/lib/types";
 
-import { useState } from "react";
-import SearchBar from "@/components/SearchBar";
-import ResultsColumn from "@/components/ResultsColumn";
-import type { ColumnState, MediaItem, SearchResponse } from "@/lib/types";
+const ACTIVITY = [
+  {
+    id: "1",
+    text: "You rated Blade Runner 2049 ★★★★½",
+    time: "2h ago",
+    medium: "Movies",
+  },
+  {
+    id: "2",
+    text: "Added Elden Ring to Top 4 Games",
+    time: "Yesterday",
+    medium: "Games",
+  },
+  {
+    id: "3",
+    text: "Finished reading Neuromancer",
+    time: "3d ago",
+    medium: "Books",
+  },
+  {
+    id: "4",
+    text: "Logged Random Access Memories",
+    time: "5d ago",
+    medium: "Music",
+  },
+];
 
-const emptyColumn = (): ColumnState => ({
-  loading: false,
-  results: [],
-  error: null,
-});
+async function loadSpotlight(): Promise<UnifiedMediaItem[]> {
+  const picks = await Promise.all(
+    MEDIA_TYPES.map(async (type) => {
+      const { results } = await getPopularForType(type);
+      return results[0] ?? null;
+    })
+  );
 
-async function fetchColumn(
-  url: string
-): Promise<{ results: MediaItem[]; error: string | null }> {
-  try {
-    const res = await fetch(url);
-    const data = (await res.json()) as SearchResponse;
-
-    if (!res.ok || data.error) {
-      return {
-        results: [],
-        error: data.error ?? `Request failed (${res.status})`,
-      };
-    }
-
-    return { results: data.results ?? [], error: null };
-  } catch (err) {
-    return {
-      results: [],
-      error: err instanceof Error ? err.message : "Network error",
-    };
-  }
+  return picks.filter((item): item is UnifiedMediaItem => item !== null);
 }
 
-interface TmdbSplitResponse {
-  movies?: MediaItem[];
-  tv?: MediaItem[];
-  results?: MediaItem[];
-  error?: string;
-}
-
-export default function Home() {
-  const [hasSearched, setHasSearched] = useState(false);
-  const [movies, setMovies] = useState<ColumnState>(emptyColumn);
-  const [tv, setTv] = useState<ColumnState>(emptyColumn);
-  const [games, setGames] = useState<ColumnState>(emptyColumn);
-  const [books, setBooks] = useState<ColumnState>(emptyColumn);
-  const [music, setMusic] = useState<ColumnState>(emptyColumn);
-
-  async function handleSearch(query: string) {
-    const q = encodeURIComponent(query);
-    setHasSearched(true);
-
-    setMovies({ loading: true, results: [], error: null });
-    setTv({ loading: true, results: [], error: null });
-    setGames({ loading: true, results: [], error: null });
-    setBooks({ loading: true, results: [], error: null });
-    setMusic({ loading: true, results: [], error: null });
-
-    const tmdbPromise = (async () => {
-      try {
-        const res = await fetch(`/api/search/tmdb?q=${q}`);
-        const data = (await res.json()) as TmdbSplitResponse;
-
-        if (!res.ok || data.error) {
-          const msg = data.error ?? `Request failed (${res.status})`;
-          setMovies({ loading: false, results: [], error: msg });
-          setTv({ loading: false, results: [], error: msg });
-          return;
-        }
-
-        setMovies({
-          loading: false,
-          results: data.movies ?? [],
-          error: null,
-        });
-        setTv({
-          loading: false,
-          results: data.tv ?? [],
-          error: null,
-        });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Network error";
-        setMovies({ loading: false, results: [], error: msg });
-        setTv({ loading: false, results: [], error: msg });
-      }
-    })();
-
-    const gamesPromise = fetchColumn(`/api/search/games?q=${q}`).then((r) =>
-      setGames({ loading: false, results: r.results, error: r.error })
-    );
-
-    const booksPromise = fetchColumn(`/api/search/books?q=${q}`).then((r) =>
-      setBooks({ loading: false, results: r.results, error: r.error })
-    );
-
-    const musicPromise = fetchColumn(`/api/search/music?q=${q}`).then((r) =>
-      setMusic({ loading: false, results: r.results, error: r.error })
-    );
-
-    await Promise.all([tmdbPromise, gamesPromise, booksPromise, musicPromise]);
-  }
+export default async function HomePage() {
+  const spotlight = await loadSpotlight();
 
   return (
-    <main style={{ maxWidth: 1400, margin: "0 auto", padding: "1.25rem" }}>
-      <header style={{ marginBottom: "1.25rem" }}>
-        <h1 style={{ margin: 0, fontSize: "1.75rem" }}>Stashd</h1>
-        <p style={{ margin: "0.35rem 0 0", color: "#555" }}>
-          Omni-media search skeleton — movies, TV, games, books, and music.
-        </p>
-      </header>
+    <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
+      <section className="space-y-4">
+        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          Welcome back, <span className="text-emerald-400">User,</span> here's what's new...
+        </h1>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {MEDIA_TYPES.map((type) => (
+            <Link
+              key={type}
+              href={CATEGORY_META[type].href}
+              className="rounded-full border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-emerald-600/50 hover:text-white"
+            >
+              {CATEGORY_META[type].title}
+            </Link>
+          ))}
+        </div>
+      </section>
 
-      <SearchBar onSearch={handleSearch} />
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xl font-semibold text-zinc-100">
+            Recent Activity
+          </h2>
+          <span className="text-xs text-zinc-500">Placeholder feed</span>
+        </div>
+        <ul className="divide-y divide-zinc-800 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          {ACTIVITY.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
+            >
+              <div>
+                <p className="text-sm text-zinc-200">{item.text}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">{item.medium}</p>
+              </div>
+              <time className="shrink-0 text-xs text-zinc-600">{item.time}</time>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "0.75rem",
-          alignItems: "start",
-        }}
-      >
-        <ResultsColumn
-          title="Movies"
-          loading={movies.loading}
-          error={movies.error}
-          results={movies.results}
-          hasSearched={hasSearched}
-        />
-        <ResultsColumn
-          title="TV Shows"
-          loading={tv.loading}
-          error={tv.error}
-          results={tv.results}
-          hasSearched={hasSearched}
-        />
-        <ResultsColumn
-          title="Games"
-          loading={games.loading}
-          error={games.error}
-          results={games.results}
-          hasSearched={hasSearched}
-        />
-        <ResultsColumn
-          title="Books"
-          loading={books.loading}
-          error={books.error}
-          results={books.results}
-          hasSearched={hasSearched}
-        />
-        <ResultsColumn
-          title="Music"
-          loading={music.loading}
-          error={music.error}
-          results={music.results}
-          hasSearched={hasSearched}
-        />
-      </div>
-    </main>
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xl font-semibold text-zinc-100">
+            Cross-Media Spotlight
+          </h2>
+          <span className="text-xs text-zinc-500">One from each medium</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+          {spotlight.map((item) => (
+            <MediaCard
+              key={`${item.mediaType}-${item.id}`}
+              item={item}
+              showAddButton
+            />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

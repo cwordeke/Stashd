@@ -1,49 +1,33 @@
 # Stashd
 
-Movies, TV shows, video games, books, and music.
+Omni-media tracker for movies, TV, games, books, and music — Letterboxd for everything.
 
 ## Setup
 
-1. Install dependencies:
-
 ```bash
 npm install
-```
-
-2. Copy environment variables and fill in your API keys:
-
-```bash
-cp .env.example .env.local
-```
-
-| Variable | Source |
-| --- | --- |
-| `TMDB_API_KEY` | [TMDB API settings](https://www.themoviedb.org/settings/api) |
-| `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET` | [Twitch Developer Console](https://dev.twitch.tv/console/apps) (used for IGDB) |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) |
-
-Open Library requires no API key.
-
-3. Start the dev server:
-
-```bash
+Copy-Item .env.example .env.local   # PowerShell
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Fill API keys in `.env.local` (see `.env.example`). Open Library needs no key. Without keys, category pages fall back to placeholders.
+
+## App structure
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Home feed — Recent Activity + Cross-Media Spotlight |
+| `/movies` `/tv` `/games` `/books` `/music` | Category popular grids |
+| `/profile` | My Stash — Top 4 shelves per medium |
+
+Global Search opens from the navbar. Results use normalized `UnifiedMediaItem` cards with **Add to Stash**. Empty Top 4 slots open search pre-filtered to that category. Stash data is stored in `localStorage`.
 
 ## API routes
 
-All keys stay server-side. The frontend only calls these Next.js routes:
-
 | Route | Upstream |
 | --- | --- |
-| `GET /api/search/tmdb?q=` | TMDB `/search/multi` (split into movies + TV) |
-| `GET /api/search/games?q=` | IGDB `/games` via Twitch OAuth |
-| `GET /api/search/books?q=` | Open Library Search API |
-| `GET /api/search/music?q=` | Spotify Search (`album,track`) |
-
-## Notes
-
-- Movie/TV director and studio fields are often unavailable from TMDB multi-search; those rows show `—` for creator.
-- Failed mediums show an error in their own column without breaking the others.
+| `GET /api/search/tmdb?q=` | TMDB multi search |
+| `GET /api/search/games?q=` | IGDB |
+| `GET /api/search/books?q=` | Open Library |
+| `GET /api/search/music?q=` | Spotify |
+| `GET /api/popular/[type]` | Popular / trending per medium |
