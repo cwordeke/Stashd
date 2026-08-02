@@ -1,8 +1,13 @@
-import ProfileClient from "@/components/ProfileClient";
-import { getUserStashShelves } from "@/app/actions/stash";
+import { redirect } from "next/navigation";
+import { getOwnProfile } from "@/app/actions/profile";
 
+/** Legacy route — send owners to their public profile URL */
 export default async function ProfilePage() {
-  const shelves = await getUserStashShelves();
+  const profile = await getOwnProfile();
 
-  return <ProfileClient shelves={shelves} />;
+  if (!profile) {
+    redirect("/onboarding");
+  }
+
+  redirect(`/u/${profile.username}`);
 }

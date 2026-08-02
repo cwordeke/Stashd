@@ -5,9 +5,13 @@ export interface AuthUserSummary {
   email: string | null;
   name: string | null;
   avatarUrl: string | null;
+  username: string | null;
 }
 
-export function toAuthUserSummary(user: User | null): AuthUserSummary | null {
+export function toAuthUserSummary(
+  user: User | null,
+  username: string | null = null
+): AuthUserSummary | null {
   if (!user) return null;
 
   const meta = user.user_metadata ?? {};
@@ -23,5 +27,11 @@ export function toAuthUserSummary(user: User | null): AuthUserSummary | null {
       (typeof meta.avatar_url === "string" && meta.avatar_url) ||
       (typeof meta.picture === "string" && meta.picture) ||
       null,
+    username,
   };
+}
+
+export function profilePath(username: string | null | undefined): string {
+  if (username) return `/u/${username}`;
+  return "/onboarding";
 }

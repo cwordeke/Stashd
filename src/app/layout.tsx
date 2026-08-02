@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AppShell from "@/components/AppShell";
+import { getOwnProfile } from "@/app/actions/profile";
 import { getUserStash } from "@/app/actions/stash";
 import { toAuthUserSummary } from "@/lib/auth";
 import { mediaKey } from "@/lib/types";
@@ -21,14 +22,17 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const stashItems = user ? await getUserStash() : [];
+  const [profile, stashItems] = user
+    ? await Promise.all([getOwnProfile(), getUserStash()])
+    : [null, []];
+
   const initialStashKeys = stashItems.map((item) => mediaKey(item));
 
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen antialiased">
         <AppShell
-          user={toAuthUserSummary(user)}
+          user={toAuthUserSummary(user, profile?.username ?? null)}
           initialStashKeys={initialStashKeys}
         >
           {children}

@@ -6,9 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
+import { profilePath, type AuthUserSummary } from "@/lib/auth";
 import { useSearchUI } from "@/context/SearchUIContext";
 import { createClient } from "@/utils/supabase/client";
-import type { AuthUserSummary } from "@/lib/auth";
 
 interface NavbarProps {
   user: AuthUserSummary | null;
@@ -19,6 +19,10 @@ export default function Navbar({ user }: NavbarProps) {
   const router = useRouter();
   const { openSearch } = useSearchUI();
   const [signingOut, setSigningOut] = useState(false);
+
+  const profileHref = profilePath(user?.username);
+  const onProfile =
+    Boolean(user?.username) && pathname === `/u/${user?.username}`;
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -75,14 +79,18 @@ export default function Navbar({ user }: NavbarProps) {
           {user ? (
             <>
               <Link
-                href="/profile"
+                href={profileHref}
                 className={cn(
                   "hidden items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition sm:inline-flex",
-                  pathname === "/profile"
+                  onProfile
                     ? "bg-zinc-800 text-white"
                     : "text-zinc-300 hover:bg-zinc-900 hover:text-white"
                 )}
-                title={user.name ?? user.email ?? "Profile"}
+                title={
+                  user.username
+                    ? `@${user.username}`
+                    : (user.name ?? user.email ?? "Profile")
+                }
               >
                 {user.avatarUrl ? (
                   <Image
@@ -94,16 +102,18 @@ export default function Navbar({ user }: NavbarProps) {
                   />
                 ) : (
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
-                    {(user.name ?? user.email ?? "?").charAt(0).toUpperCase()}
+                    {(user.username ?? user.name ?? user.email ?? "?")
+                      .charAt(0)
+                      .toUpperCase()}
                   </span>
                 )}
                 <span className="max-w-[8rem] truncate">
-                  {user.name ?? "Profile"}
+                  {user.username ? `@${user.username}` : "Profile"}
                 </span>
               </Link>
 
               <Link
-                href="/profile"
+                href={profileHref}
                 className="inline-flex sm:hidden"
                 title="Profile"
               >
@@ -117,7 +127,9 @@ export default function Navbar({ user }: NavbarProps) {
                   />
                 ) : (
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
-                    {(user.name ?? user.email ?? "?").charAt(0).toUpperCase()}
+                    {(user.username ?? user.name ?? user.email ?? "?")
+                      .charAt(0)
+                      .toUpperCase()}
                   </span>
                 )}
               </Link>

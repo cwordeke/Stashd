@@ -12,9 +12,14 @@ import {
 interface Top4ShelfProps {
   type: MediaType;
   items: StashSlot[];
+  editable?: boolean;
 }
 
-export default function Top4Shelf({ type, items }: Top4ShelfProps) {
+export default function Top4Shelf({
+  type,
+  items,
+  editable = false,
+}: Top4ShelfProps) {
   const { openSearch } = useSearchUI();
   const { removeFromStash } = useStash();
 
@@ -27,13 +32,15 @@ export default function Top4Shelf({ type, items }: Top4ShelfProps) {
         <h2 className="text-lg font-semibold text-zinc-100">
           Top 4 {MEDIA_TYPE_LABELS[type]}
         </h2>
-        <button
-          type="button"
-          onClick={() => openSearch(type)}
-          className="text-xs text-emerald-400 transition hover:text-emerald-300"
-        >
-          Search {MEDIA_TYPE_LABELS[type]}
-        </button>
+        {editable ? (
+          <button
+            type="button"
+            onClick={() => openSearch(type)}
+            className="text-xs text-emerald-400 transition hover:text-emerald-300"
+          >
+            Search {MEDIA_TYPE_LABELS[type]}
+          </button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -44,12 +51,12 @@ export default function Top4Shelf({ type, items }: Top4ShelfProps) {
               item={item}
               compact
               onRemove={
-                item.stashId
+                editable && item.stashId
                   ? () => removeFromStash(item.stashId!, item)
                   : undefined
               }
             />
-          ) : (
+          ) : editable ? (
             <button
               key={`empty-${type}-${index}`}
               type="button"
@@ -59,6 +66,13 @@ export default function Top4Shelf({ type, items }: Top4ShelfProps) {
               <span className="text-2xl font-light leading-none">+</span>
               <span className="text-xs font-medium">Add</span>
             </button>
+          ) : (
+            <div
+              key={`empty-${type}-${index}`}
+              className="flex aspect-[2/3] items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20 text-xs text-zinc-600"
+            >
+              Empty
+            </div>
           )
         )}
       </div>

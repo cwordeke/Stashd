@@ -50,22 +50,17 @@ function rowToStashItem(row: StashRow): StashItem | null {
   };
 }
 
-export async function getUserStash(): Promise<StashItem[]> {
+export async function getStashByUserId(userId: string): Promise<StashItem[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return [];
 
   const { data, error } = await supabase
     .from("stash_items")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("getUserStash:", error.message);
+    console.error("getStashByUserId:", error.message);
     return [];
   }
 
@@ -74,8 +69,7 @@ export async function getUserStash(): Promise<StashItem[]> {
     .filter((item): item is StashItem => item !== null);
 }
 
-export async function getUserStashShelves(): Promise<StashShelves> {
-  const items = await getUserStash();
+function shelvesFromItems(items: StashItem[]): StashShelves {
   const shelves = emptyShelves();
 
   for (const item of items) {
@@ -88,6 +82,44 @@ export async function getUserStashShelves(): Promise<StashShelves> {
   }
 
   return shelves;
+}
+
+export async function getUserStash(): Promise<StashItem[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+  return getStashByUserId(user.id);
+}
+
+export async function getUserStashShelves(): Promise<StashShelves> {
+  const items = await getUserStash();
+  return shelvesFromItems(items);
+}
+
+export async function getStashShelvesByUserId(
+  userId: string
+): Promise<StashShelves> {
+  const items = await getStashByUserId(userId);
+  return shelvesFromItems(items);
+}
+
+async function revalidateStashPaths(userId: string) {
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (data?.username) {
+    revalidatePath(`/u/${data.username}`);
+  }
 }
 
 export async function addStashItem(
@@ -154,8 +186,7 @@ export async function addStashItem(
   }
 
   const stashItem = rowToStashItem(data as StashRow);
-  revalidatePath("/profile");
-  revalidatePath("/");
+  await revalidateStashPaths(user.id);
 
   return {
     ok: true,
@@ -186,8 +217,7 @@ export async function removeStashItem(
     return { ok: false, message: error.message };
   }
 
-  revalidatePath("/profile");
-  revalidatePath("/");
+  await revalidateStashPaths(user.id);
 
   return { ok: true, message: "Removed from your stash" };
 }
