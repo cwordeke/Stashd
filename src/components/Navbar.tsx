@@ -1,14 +1,33 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { useSearchUI } from "@/context/SearchUIContext";
+import { createClient } from "@/utils/supabase/client";
+import type { AuthUserSummary } from "@/lib/auth";
 
-export default function Navbar() {
+interface NavbarProps {
+  user: AuthUserSummary | null;
+}
+
+export default function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { openSearch } = useSearchUI();
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+    setSigningOut(false);
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
@@ -53,21 +72,76 @@ export default function Navbar() {
             Search
           </button>
 
-          <Link
-            href="/profile"
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm transition",
-              pathname === "/profile"
-                ? "bg-emerald-600 text-white"
-                : "border border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800"
-            )}
-          >
-            Profile
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/profile"
+                className={cn(
+                  "hidden items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition sm:inline-flex",
+                  pathname === "/profile"
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                )}
+                title={user.name ?? user.email ?? "Profile"}
+              >
+                {user.avatarUrl ? (
+                  <Image
+                    src={user.avatarUrl}
+                    alt={user.name ?? "User avatar"}
+                    width={28}
+                    height={28}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
+                    {(user.name ?? user.email ?? "?").charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="max-w-[8rem] truncate">
+                  {user.name ?? "Profile"}
+                </span>
+              </Link>
+
+              <Link
+                href="/profile"
+                className="inline-flex sm:hidden"
+                title="Profile"
+              >
+                {user.avatarUrl ? (
+                  <Image
+                    src={user.avatarUrl}
+                    alt={user.name ?? "User avatar"}
+                    width={28}
+                    height={28}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
+                    {(user.name ?? user.email ?? "?").charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50"
+              >
+                {signingOut ? "…" : "Sign Out"}
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Mobile category strip */}
       <nav className="flex gap-1 overflow-x-auto border-t border-zinc-900 px-3 py-2 md:hidden">
         {NAV_LINKS.map((link) => {
           const active =

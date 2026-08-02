@@ -49,7 +49,8 @@ export default async function HomePage() {
     <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
       <section className="space-y-4">
         <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          Welcome back, <span className="text-emerald-400">User,</span> here's what's new...
+          Welcome back, <span className="text-emerald-400">User,</span> here&apos;s
+          what&apos;s new...
         </h1>
         <div className="flex flex-wrap gap-2 pt-1">
           {MEDIA_TYPES.map((type) => (

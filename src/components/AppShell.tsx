@@ -4,13 +4,19 @@ import { SearchUIProvider } from "@/context/SearchUIContext";
 import { StashProvider } from "@/context/StashContext";
 import Navbar from "@/components/Navbar";
 import SearchModal from "@/components/SearchModal";
+import type { AuthUserSummary } from "@/lib/auth";
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+interface AppShellProps {
+  children: React.ReactNode;
+  user: AuthUserSummary | null;
+}
+
+export default function AppShell({ children, user }: AppShellProps) {
   return (
     <SearchUIProvider>
       <StashProvider>
         <div className="flex min-h-screen flex-col">
-          <Navbar />
+          <Navbar user={user} />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-zinc-900 py-6 text-center text-xs text-zinc-600">
             Stashd — track everything you love in one place
