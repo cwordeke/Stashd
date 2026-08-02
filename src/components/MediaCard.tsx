@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { useStash } from "@/context/StashContext";
 
 interface MediaCardProps {
-  item: UnifiedMediaItem;
+  item: UnifiedMediaItem & { stashId?: string };
   showAddButton?: boolean;
   compact?: boolean;
   onRemove?: () => void;
@@ -18,8 +18,13 @@ export default function MediaCard({
   compact = false,
   onRemove,
 }: MediaCardProps) {
-  const { addToStash, isInStash } = useStash();
+  const { addToStash, isInStash, isPending, pendingKey } = useStash();
   const inStash = isInStash(item);
+  const itemKey = `${item.mediaType}:${item.id}`;
+  const thisPending =
+    isPending &&
+    (pendingKey === itemKey ||
+      (item.stashId != null && pendingKey === item.stashId));
 
   function handleAdd() {
     addToStash(item);
@@ -32,7 +37,6 @@ export default function MediaCard({
         compact && "rounded-lg"
       )}
     >
-      {/* Uniform 2:3 frame — object-cover normalizes all source aspect ratios */}
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-800">
         {item.thumbnail ? (
           <Image
@@ -55,10 +59,7 @@ export default function MediaCard({
 
       <div className={cn("flex flex-1 flex-col gap-1 p-3", compact && "p-2")}>
         <h3
-          className={cn(
-            "line-clamp-2 font-medium leading-snug text-zinc-100",
-            compact ? "text-sm" : "text-sm"
-          )}
+          className="line-clamp-2 text-sm font-medium leading-snug text-zinc-100"
           title={item.title}
         >
           {item.title}
@@ -70,15 +71,15 @@ export default function MediaCard({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={inStash}
+            disabled={inStash || thisPending}
             className={cn(
               "mt-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition",
               inStash
                 ? "cursor-default bg-zinc-800 text-zinc-500"
-                : "bg-emerald-600/90 text-white hover:bg-emerald-500"
+                : "bg-emerald-600/90 text-white hover:bg-emerald-500 disabled:opacity-60"
             )}
           >
-            {inStash ? "In Stash" : "Add to Stash"}
+            {inStash ? "In Stash" : thisPending ? "Adding…" : "Add to Stash"}
           </button>
         )}
 
@@ -86,9 +87,10 @@ export default function MediaCard({
           <button
             type="button"
             onClick={onRemove}
-            className="mt-2 rounded-lg border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-300 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300"
+            disabled={thisPending}
+            className="mt-2 rounded-lg border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-300 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60"
           >
-            Remove
+            {thisPending ? "Removing…" : "Remove"}
           </button>
         )}
       </div>

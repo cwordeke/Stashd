@@ -25,7 +25,7 @@ export interface ColumnState {
   error: string | null;
 }
 
-export type StashSlot = UnifiedMediaItem | null;
+export type StashSlot = (UnifiedMediaItem & { stashId?: string }) | null;
 
 export type StashShelves = Record<MediaType, StashSlot[]>;
 

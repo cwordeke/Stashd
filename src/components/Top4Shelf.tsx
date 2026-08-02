@@ -3,16 +3,23 @@
 import MediaCard from "@/components/MediaCard";
 import { useSearchUI } from "@/context/SearchUIContext";
 import { useStash } from "@/context/StashContext";
-import { MEDIA_TYPE_LABELS, type MediaType } from "@/lib/types";
+import {
+  MEDIA_TYPE_LABELS,
+  type MediaType,
+  type StashSlot,
+} from "@/lib/types";
 
 interface Top4ShelfProps {
   type: MediaType;
+  items: StashSlot[];
 }
 
-export default function Top4Shelf({ type }: Top4ShelfProps) {
-  const { shelves, removeFromStash } = useStash();
+export default function Top4Shelf({ type, items }: Top4ShelfProps) {
   const { openSearch } = useSearchUI();
-  const slots = shelves[type];
+  const { removeFromStash } = useStash();
+
+  const slots: StashSlot[] = [...items];
+  while (slots.length < 4) slots.push(null);
 
   return (
     <section className="space-y-3">
@@ -30,13 +37,17 @@ export default function Top4Shelf({ type }: Top4ShelfProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {slots.map((item, index) =>
+        {slots.slice(0, 4).map((item, index) =>
           item ? (
             <MediaCard
-              key={`${item.id}-${index}`}
+              key={item.stashId ?? `${item.id}-${index}`}
               item={item}
               compact
-              onRemove={() => removeFromStash(type, index)}
+              onRemove={
+                item.stashId
+                  ? () => removeFromStash(item.stashId!, item)
+                  : undefined
+              }
             />
           ) : (
             <button

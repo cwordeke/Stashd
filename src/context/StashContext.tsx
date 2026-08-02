@@ -7,96 +7,114 @@ import {
   useEffect,
   useMemo,
   useState,
+  useTransition,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
-  emptyShelves,
-  mediaKey,
-  type MediaType,
-  type StashShelves,
-  type UnifiedMediaItem,
-} from "@/lib/types";
-
-const STORAGE_KEY = "stashd:my-stash";
+  addStashItem as addStashItemAction,
+  removeStashItem as removeStashItemAction,
+} from "@/app/actions/stash";
+import { useToast } from "@/context/ToastContext";
+import { mediaKey, type UnifiedMediaItem } from "@/lib/types";
 
 interface StashState {
-  shelves: StashShelves;
-  addToStash: (item: UnifiedMediaItem) => { ok: boolean; message: string };
-  removeFromStash: (type: MediaType, index: number) => void;
+  isPending: boolean;
+  pendingKey: string | null;
+  addToStash: (item: UnifiedMediaItem) => void;
+  removeFromStash: (stashId: string, item?: UnifiedMediaItem) => void;
   isInStash: (item: UnifiedMediaItem) => boolean;
 }
 
 const StashContext = createContext<StashState | null>(null);
 
-export function StashProvider({ children }: { children: ReactNode }) {
-  const [shelves, setShelves] = useState<StashShelves>(emptyShelves);
-  const [hydrated, setHydrated] = useState(false);
+interface StashProviderProps {
+  children: ReactNode;
+  initialKeys?: string[];
+}
+
+export function StashProvider({
+  children,
+  initialKeys = [],
+}: StashProviderProps) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [stashKeys, setStashKeys] = useState(() => new Set(initialKeys));
+  const initialKeySignature = initialKeys.slice().sort().join("|");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as StashShelves;
-        setShelves({ ...emptyShelves(), ...parsed });
-      }
-    } catch {
-      // ignore corrupt storage
-    }
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(shelves));
-  }, [shelves, hydrated]);
+    setStashKeys(new Set(initialKeys));
+    // Sync when server keys change after router.refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKeySignature]);
 
   const isInStash = useCallback(
-    (item: UnifiedMediaItem) => {
-      return shelves[item.mediaType].some(
-        (slot) => slot && mediaKey(slot) === mediaKey(item)
-      );
-    },
-    [shelves]
+    (item: UnifiedMediaItem) => stashKeys.has(mediaKey(item)),
+    [stashKeys]
   );
 
   const addToStash = useCallback(
     (item: UnifiedMediaItem) => {
-      if (isInStash(item)) {
-        return { ok: false, message: "Already in your Top 4" };
-      }
+      const key = mediaKey(item);
+      setPendingKey(key);
+      startTransition(async () => {
+        const result = await addStashItemAction(item);
+        setPendingKey(null);
 
-      const shelf = shelves[item.mediaType];
-      const emptyIndex = shelf.findIndex((slot) => slot === null);
+        if (!result.ok) {
+          showToast(result.message, "error");
+          return;
+        }
 
-      if (emptyIndex === -1) {
-        return {
-          ok: false,
-          message: "Top 4 is full — remove an item first",
-        };
-      }
-
-      setShelves((prev) => {
-        const next = { ...prev, [item.mediaType]: [...prev[item.mediaType]] };
-        next[item.mediaType][emptyIndex] = item;
-        return next;
+        setStashKeys((prev) => {
+          const next = new Set(prev);
+          next.add(key);
+          return next;
+        });
+        showToast(result.message, "success");
+        router.refresh();
       });
-
-      return { ok: true, message: "Added to your stash" };
     },
-    [shelves, isInStash]
+    [router, showToast]
   );
 
-  const removeFromStash = useCallback((type: MediaType, index: number) => {
-    setShelves((prev) => {
-      const next = { ...prev, [type]: [...prev[type]] };
-      next[type][index] = null;
-      return next;
-    });
-  }, []);
+  const removeFromStash = useCallback(
+    (stashId: string, item?: UnifiedMediaItem) => {
+      setPendingKey(stashId);
+      startTransition(async () => {
+        const result = await removeStashItemAction(stashId);
+        setPendingKey(null);
+
+        if (!result.ok) {
+          showToast(result.message, "error");
+          return;
+        }
+
+        if (item) {
+          setStashKeys((prev) => {
+            const next = new Set(prev);
+            next.delete(mediaKey(item));
+            return next;
+          });
+        }
+        showToast(result.message, "success");
+        router.refresh();
+      });
+    },
+    [router, showToast]
+  );
 
   const value = useMemo(
-    () => ({ shelves, addToStash, removeFromStash, isInStash }),
-    [shelves, addToStash, removeFromStash, isInStash]
+    () => ({
+      isPending,
+      pendingKey,
+      addToStash,
+      removeFromStash,
+      isInStash,
+    }),
+    [isPending, pendingKey, addToStash, removeFromStash, isInStash]
   );
 
   return (
