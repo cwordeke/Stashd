@@ -1,70 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  getProfileByUserId,
+  rowToProfile,
+  type Profile,
+} from "@/lib/profile";
 import { createClient } from "@/utils/supabase/server";
 import { normalizeUsername, validateUsername } from "@/lib/username";
-
-export interface Profile {
-  id: string;
-  username: string;
-  avatarUrl: string | null;
-}
 
 export type ProfileActionResult =
   | { ok: true; profile: Profile; message: string }
   | { ok: false; message: string };
-
-interface ProfileRow {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-}
-
-function rowToProfile(row: ProfileRow): Profile {
-  return {
-    id: row.id,
-    username: row.username,
-    avatarUrl: row.avatar_url,
-  };
-}
-
-export async function getProfileByUserId(
-  userId: string
-): Promise<Profile | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, username, avatar_url")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return rowToProfile(data as ProfileRow);
-}
-
-export async function getOwnProfile(): Promise<Profile | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
-  return getProfileByUserId(user.id);
-}
-
-export async function getProfileByUsername(
-  username: string
-): Promise<Profile | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, username, avatar_url")
-    .eq("username", normalizeUsername(username))
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return rowToProfile(data as ProfileRow);
-}
 
 export async function claimUsername(
   username: string
@@ -117,7 +64,18 @@ export async function claimUsername(
     return { ok: false, message: error.message };
   }
 
-  const profile = rowToProfile(data as ProfileRow);
+  // Keep username on the JWT so middleware/shell skip profile lookups.
+  await supabase.auth.updateUser({
+    data: { username: normalized },
+  });
+
+  const profile = rowToProfile(
+    data as {
+      id: string;
+      username: string;
+      avatar_url: string | null;
+    }
+  );
   revalidatePath("/onboarding");
   revalidatePath(`/u/${profile.username}`);
   revalidatePath("/");

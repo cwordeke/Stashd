@@ -24,20 +24,22 @@ Fill API keys in `.env.local` (see `.env.example`). Open Library needs no key. W
 | Route | Purpose |
 | --- | --- |
 | `/` | Home feed — Recent Activity + Cross-Media Spotlight |
-| `/movies` `/tv` `/games` `/books` `/music` | Category popular grids |
+| `/movies` `/tv` `/games` `/books` `/music` | Trending / popular category grids |
 | `/login` | Google OAuth sign-in |
 | `/onboarding` | Claim a unique username |
 | `/u/[username]` | Public Top 4 stash |
 | `/profile` | Redirects to `/u/[username]` |
 
-Global Search opens from the navbar. Results use normalized `UnifiedMediaItem` cards with **Add to Stash**. Empty Top 4 slots open search pre-filtered to that category. Stash data is stored in `localStorage`.
+Category pages fetch trending data server-side (upstream cache ~24h). **Add to Stash** saves via Supabase when signed in; guests are redirected to `/login`.
 
 ## API routes
 
 | Route | Upstream |
 | --- | --- |
-| `GET /api/search/tmdb?q=` | TMDB multi search |
-| `GET /api/search/games?q=` | IGDB |
-| `GET /api/search/books?q=` | Open Library |
-| `GET /api/search/music?q=` | Spotify |
-| `GET /api/popular/[type]` | Popular / trending per medium |
+| `GET /api/trending/tmdb-movies` | TMDB `/trending/movie/week` |
+| `GET /api/trending/tmdb-tv` | TMDB `/trending/tv/week` |
+| `GET /api/trending/games` | IGDB `sort rating_count desc` |
+| `GET /api/trending/books` | Open Library `/trending/weekly.json` |
+| `GET /api/trending/music` | Spotify new releases |
+| `GET /api/search/*` | Keyword search per medium |
+| `GET /api/popular/[type]` | Fallback popular / placeholder |

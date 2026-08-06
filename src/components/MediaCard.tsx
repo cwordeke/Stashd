@@ -79,7 +79,7 @@ export default function MediaCard({
                 : "bg-emerald-600/90 text-white hover:bg-emerald-500 disabled:opacity-60"
             )}
           >
-            {inStash ? "In Stash" : thisPending ? "Adding…" : "Add to Stash"}
+            {inStash ? "In Stash" : thisPending ? "Saving…" : "Add to Stash"}
           </button>
         )}
 
@@ -90,7 +90,7 @@ export default function MediaCard({
             disabled={thisPending}
             className="mt-2 rounded-lg border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-300 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60"
           >
-            {thisPending ? "Removing…" : "Remove"}
+            Remove
           </button>
         )}
       </div>

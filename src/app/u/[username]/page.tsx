@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import PublicProfileView from "@/components/PublicProfileView";
-import { getProfileByUsername } from "@/app/actions/profile";
+import { getProfileByUsername } from "@/lib/profile";
 import { getStashShelvesByUserId } from "@/app/actions/stash";
 import { createClient } from "@/utils/supabase/server";
 
@@ -26,22 +26,22 @@ export default async function PublicProfilePage({
   params,
 }: PublicProfilePageProps) {
   const { username } = await params;
-  const profile = await getProfileByUsername(username);
+
+  const [profile, supabase] = await Promise.all([
+    getProfileByUsername(username),
+    createClient(),
+  ]);
 
   if (!profile) {
     notFound();
   }
 
-  const [shelves, supabase] = await Promise.all([
+  const [shelves, auth] = await Promise.all([
     getStashShelvesByUserId(profile.id),
-    createClient(),
+    supabase.auth.getUser(),
   ]);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const isOwner = user?.id === profile.id;
+  const isOwner = auth.data.user?.id === profile.id;
 
   return (
     <PublicProfileView

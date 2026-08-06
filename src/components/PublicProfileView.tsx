@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Top4Shelf from "@/components/Top4Shelf";
 import { useSearchUI } from "@/context/SearchUIContext";
+import { useStash } from "@/context/StashContext";
 import { MEDIA_TYPES, type StashShelves } from "@/lib/types";
 
 interface PublicProfileViewProps {
@@ -20,7 +21,11 @@ export default function PublicProfileView({
   isOwner,
 }: PublicProfileViewProps) {
   const { openSearch } = useSearchUI();
+  const { shelves: optimisticShelves } = useStash();
   const [copied, setCopied] = useState(false);
+
+  // Owners see optimistic shelves so add/remove updates instantly
+  const displayShelves = isOwner ? optimisticShelves : shelves;
 
   async function handleShare() {
     const url = window.location.href;
@@ -29,7 +34,6 @@ export default function PublicProfileView({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       window.prompt("Copy this profile URL:", url);
     }
   }
@@ -89,7 +93,7 @@ export default function PublicProfileView({
           <Top4Shelf
             key={type}
             type={type}
-            items={shelves[type]}
+            items={displayShelves[type]}
             editable={isOwner}
           />
         ))}

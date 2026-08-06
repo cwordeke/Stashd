@@ -258,6 +258,10 @@ const PLACEHOLDERS: Record<MediaType, UnifiedMediaItem[]> = {
   ],
 };
 
+export function getPlaceholderResults(type: MediaType): UnifiedMediaItem[] {
+  return PLACEHOLDERS[type];
+}
+
 export async function getPopularForType(
   type: MediaType
 ): Promise<{ results: UnifiedMediaItem[]; source: "live" | "placeholder" }> {

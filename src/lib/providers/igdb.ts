@@ -70,13 +70,17 @@ export async function searchGames(query: string): Promise<UnifiedMediaItem[]> {
   return mapGames(await igdbQuery(body, 0));
 }
 
-export async function getPopularGames(): Promise<UnifiedMediaItem[]> {
+export async function getTrendingGames(): Promise<UnifiedMediaItem[]> {
   const body = [
-    "where rating_count > 100 & version_parent = null & cover != null;",
-    "sort rating desc;",
+    "where rating_count > 50 & version_parent = null & cover != null;",
+    "sort rating_count desc;",
     FIELDS,
-    "limit 12;",
+    "limit 20;",
   ].join(" ");
 
-  return mapGames(await igdbQuery(body));
+  return mapGames(await igdbQuery(body, 86400));
+}
+
+export async function getPopularGames(): Promise<UnifiedMediaItem[]> {
+  return getTrendingGames();
 }

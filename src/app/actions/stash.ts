@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import {
   MEDIA_TYPES,
-  emptyShelves,
   type MediaType,
   type StashShelves,
   type UnifiedMediaItem,
 } from "@/lib/types";
+import { shelvesFromItems } from "@/lib/stash-utils";
 
 export interface StashItem extends UnifiedMediaItem {
   stashId: string;
@@ -67,21 +67,6 @@ export async function getStashByUserId(userId: string): Promise<StashItem[]> {
   return ((data as StashRow[] | null) ?? [])
     .map(rowToStashItem)
     .filter((item): item is StashItem => item !== null);
-}
-
-function shelvesFromItems(items: StashItem[]): StashShelves {
-  const shelves = emptyShelves();
-
-  for (const item of items) {
-    const shelf = shelves[item.mediaType];
-    if (shelf.filter(Boolean).length >= TOP_N) continue;
-    const emptyIndex = shelf.findIndex((slot) => slot === null);
-    if (emptyIndex !== -1) {
-      shelf[emptyIndex] = item;
-    }
-  }
-
-  return shelves;
 }
 
 export async function getUserStash(): Promise<StashItem[]> {
@@ -151,7 +136,7 @@ export async function addStashItem(
   if ((count ?? 0) >= TOP_N) {
     return {
       ok: false,
-      message: "Top 4 for this category is full",
+      message: "This category is already full! Remove an item first.",
     };
   }
 

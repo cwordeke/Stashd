@@ -1,8 +1,10 @@
 import Link from "next/link";
 import MediaCard from "@/components/MediaCard";
 import { CATEGORY_META } from "@/lib/constants";
-import { getPopularForType } from "@/lib/popular";
+import { getTrendingForType } from "@/lib/trending";
 import { MEDIA_TYPES, type UnifiedMediaItem } from "@/lib/types";
+
+export const revalidate = 86400;
 
 const ACTIVITY = [
   {
@@ -34,7 +36,7 @@ const ACTIVITY = [
 async function loadSpotlight(): Promise<UnifiedMediaItem[]> {
   const picks = await Promise.all(
     MEDIA_TYPES.map(async (type) => {
-      const { results } = await getPopularForType(type);
+      const { results } = await getTrendingForType(type);
       return results[0] ?? null;
     })
   );

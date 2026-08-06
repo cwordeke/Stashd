@@ -14,19 +14,18 @@ interface TmdbListResponse {
   results?: TmdbListItem[];
 }
 
-export async function getPopularMovies(): Promise<UnifiedMediaItem[]> {
+export async function getTrendingMovies(): Promise<UnifiedMediaItem[]> {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
 
-  const url = new URL("https://api.themoviedb.org/3/movie/popular");
+  const url = new URL("https://api.themoviedb.org/3/trending/movie/week");
   url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("page", "1");
 
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-  if (!res.ok) throw new Error(`TMDB popular movies failed: ${res.status}`);
+  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  if (!res.ok) throw new Error(`TMDB trending movies failed: ${res.status}`);
 
   const data = (await res.json()) as TmdbListResponse;
-  return (data.results ?? []).slice(0, 12).map((item) => ({
+  return (data.results ?? []).slice(0, 20).map((item) => ({
     id: String(item.id),
     title: item.title ?? "Untitled",
     creator: "—",
@@ -36,19 +35,18 @@ export async function getPopularMovies(): Promise<UnifiedMediaItem[]> {
   }));
 }
 
-export async function getPopularTv(): Promise<UnifiedMediaItem[]> {
+export async function getTrendingTv(): Promise<UnifiedMediaItem[]> {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
 
-  const url = new URL("https://api.themoviedb.org/3/tv/popular");
+  const url = new URL("https://api.themoviedb.org/3/trending/tv/week");
   url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("page", "1");
 
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-  if (!res.ok) throw new Error(`TMDB popular TV failed: ${res.status}`);
+  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  if (!res.ok) throw new Error(`TMDB trending TV failed: ${res.status}`);
 
   const data = (await res.json()) as TmdbListResponse;
-  return (data.results ?? []).slice(0, 12).map((item) => ({
+  return (data.results ?? []).slice(0, 20).map((item) => ({
     id: String(item.id),
     title: item.name ?? "Untitled",
     creator: "—",
@@ -56,6 +54,14 @@ export async function getPopularTv(): Promise<UnifiedMediaItem[]> {
     thumbnail: tmdbPoster(item.poster_path),
     mediaType: "tv" as const,
   }));
+}
+
+export async function getPopularMovies(): Promise<UnifiedMediaItem[]> {
+  return getTrendingMovies();
+}
+
+export async function getPopularTv(): Promise<UnifiedMediaItem[]> {
+  return getTrendingTv();
 }
 
 export async function searchTmdb(query: string) {
