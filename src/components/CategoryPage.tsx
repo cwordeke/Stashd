@@ -30,7 +30,7 @@ export default async function CategoryPage({ type }: CategoryPageProps) {
         </p>
       </header>
 
-      <MediaGrid items={results} showAddButton />
+      <MediaGrid items={results} />
     </div>
   );
 }

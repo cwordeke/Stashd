@@ -102,7 +102,6 @@ export default async function HomePage() {
             <MediaCard
               key={`${item.mediaType}-${item.id}`}
               item={item}
-              showAddButton
             />
           ))}
         </div>

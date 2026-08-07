@@ -86,9 +86,6 @@ export default function AppShell({ children }: AppShellProps) {
           <div className="flex min-h-screen flex-col">
             <Navbar user={user} />
             <main className="flex-1">{children}</main>
-            <footer className="border-t border-zinc-900 py-6 text-center text-xs text-zinc-600">
-              Stashd — track everything you love in one place
-            </footer>
           </div>
           <SearchModal />
         </StashProvider>

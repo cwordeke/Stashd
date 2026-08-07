@@ -28,6 +28,7 @@ Fill API keys in `.env.local` (see `.env.example`). Open Library needs no key. W
 | `/login` | Google OAuth sign-in |
 | `/onboarding` | Claim a unique username |
 | `/u/[username]` | Public Top 4 stash |
+| `/media/[mediaType]/[id]` | Rating + media preview |
 | `/profile` | Redirects to `/u/[username]` |
 
 Category pages fetch trending data server-side (upstream cache ~24h). **Add to Stash** saves via Supabase when signed in; guests are redirected to `/login`.

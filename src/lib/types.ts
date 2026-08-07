@@ -11,6 +11,14 @@ export interface UnifiedMediaItem {
   mediaType: MediaType;
 }
 
+/** Full detail payload for the Letterboxd-style media page */
+export interface MediaDetails extends UnifiedMediaItem {
+  description: string | null;
+  /** Landscape banner; null → UI falls back to blurred poster */
+  backdropUrl: string | null;
+  tagline?: string | null;
+}
+
 /** @deprecated Prefer UnifiedMediaItem — kept for API route compatibility */
 export type MediaItem = UnifiedMediaItem;
 
@@ -57,4 +65,12 @@ export function emptyShelves(): StashShelves {
 
 export function mediaKey(item: UnifiedMediaItem): string {
   return `${item.mediaType}:${item.id}`;
+}
+
+export function mediaDetailPath(mediaType: MediaType, id: string): string {
+  return `/media/${mediaType}/${encodeURIComponent(id)}`;
+}
+
+export function isMediaType(value: string): value is MediaType {
+  return (MEDIA_TYPES as string[]).includes(value);
 }

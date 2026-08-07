@@ -322,7 +322,6 @@ export default function SearchModal() {
                           <MediaCard
                             key={`${item.mediaType}-${item.id}`}
                             item={item}
-                            showAddButton
                             compact
                           />
                         ))}

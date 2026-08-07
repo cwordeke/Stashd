@@ -39,6 +39,8 @@ interface StashState {
   shelves: StashShelves;
   isPending: boolean;
   pendingKey: string | null;
+  /** False until auth + initial stash fetch have finished */
+  stashReady: boolean;
   addToStash: (item: UnifiedMediaItem) => void;
   removeFromStash: (stashId: string, item?: UnifiedMediaItem) => void;
   isInStash: (item: UnifiedMediaItem) => boolean;
@@ -77,19 +79,25 @@ export function StashProvider({
   const [isPending, startTransition] = useTransition();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [items, setItems] = useState<StashItem[]>([]);
+  const [stashReady, setStashReady] = useState(false);
 
   useEffect(() => {
     if (!authReady) return;
 
     if (!isAuthenticated) {
       setItems([]);
+      setStashReady(true);
       return;
     }
 
     let cancelled = false;
+    setStashReady(false);
 
     void getUserStash().then((nextItems) => {
-      if (!cancelled) setItems(nextItems);
+      if (!cancelled) {
+        setItems(nextItems);
+        setStashReady(true);
+      }
     });
 
     return () => {
@@ -215,6 +223,7 @@ export function StashProvider({
       shelves,
       isPending,
       pendingKey,
+      stashReady,
       addToStash,
       removeFromStash,
       isInStash,
@@ -224,6 +233,7 @@ export function StashProvider({
       shelves,
       isPending,
       pendingKey,
+      stashReady,
       addToStash,
       removeFromStash,
       isInStash,

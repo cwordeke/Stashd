@@ -9,7 +9,7 @@ interface MediaGridProps {
 
 export default function MediaGrid({
   items,
-  showAddButton = true,
+  showAddButton = false,
   emptyMessage = "Nothing here yet.",
 }: MediaGridProps) {
   if (!items.length) {
