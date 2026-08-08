@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { NavigationPendingProvider, useNavigationPending } from "@/context/NavigationPendingContext";
 import { SearchUIProvider } from "@/context/SearchUIContext";
 import { StashProvider } from "@/context/StashContext";
 import { ToastProvider } from "@/context/ToastContext";
 import Navbar from "@/components/Navbar";
 import SearchModal from "@/components/SearchModal";
+import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/client";
 
@@ -18,6 +20,16 @@ function usernameFromUser(user: {
 }): string | null {
   const meta = user.user_metadata ?? {};
   return typeof meta.username === "string" ? meta.username : null;
+}
+
+function MainContent({ children }: { children: React.ReactNode }) {
+  const { pendingHref } = useNavigationPending();
+
+  return (
+    <main className="flex-1">
+      {pendingHref ? <PendingRouteView /> : children}
+    </main>
+  );
 }
 
 export default function AppShell({ children }: AppShellProps) {
@@ -82,13 +94,15 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <ToastProvider>
       <SearchUIProvider>
-        <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
-          <div className="flex min-h-screen flex-col">
-            <Navbar user={user} />
-            <main className="flex-1">{children}</main>
-          </div>
-          <SearchModal />
-        </StashProvider>
+        <NavigationPendingProvider>
+          <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
+            <div className="flex min-h-screen flex-col">
+              <Navbar user={user} />
+              <MainContent>{children}</MainContent>
+            </div>
+            <SearchModal />
+          </StashProvider>
+        </NavigationPendingProvider>
       </SearchUIProvider>
     </ToastProvider>
   );

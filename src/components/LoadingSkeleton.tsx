@@ -1,4 +1,5 @@
-import { MEDIA_TYPE_LABELS, MEDIA_TYPES } from "@/lib/types";
+import { CATEGORY_META } from "@/lib/constants";
+import { MEDIA_TYPE_LABELS, MEDIA_TYPES, type MediaType } from "@/lib/types";
 
 export function MediaCardSkeleton() {
   return (
@@ -24,17 +25,35 @@ export function MediaGridSkeleton({ count = 12 }: { count?: number }) {
 }
 
 export function CategoryPageSkeleton({
+  type,
   title = "Loading…",
 }: {
+  type?: MediaType;
   title?: string;
 }) {
+  const meta = type ? CATEGORY_META[type] : null;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <header className="mb-8 space-y-3">
-        <div className="h-3 w-20 animate-pulse rounded bg-zinc-800" />
-        <div className="h-8 w-64 max-w-full animate-pulse rounded bg-zinc-800" />
-        <div className="h-4 w-96 max-w-full animate-pulse rounded bg-zinc-800/70" />
-        <p className="sr-only">{title}</p>
+      <header className="mb-8 space-y-2">
+        {meta ? (
+          <>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-500/80">
+              {meta.title}
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-white">
+              {meta.popularHeading}
+            </h1>
+            <p className="max-w-2xl text-sm text-zinc-400">{meta.description}</p>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div className="h-3 w-20 animate-pulse rounded bg-zinc-800" />
+            <div className="h-8 w-64 max-w-full animate-pulse rounded bg-zinc-800" />
+            <div className="h-4 w-96 max-w-full animate-pulse rounded bg-zinc-800/70" />
+            <p className="sr-only">{title}</p>
+          </div>
+        )}
       </header>
       <MediaGridSkeleton />
     </div>

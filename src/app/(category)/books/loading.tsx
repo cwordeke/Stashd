@@ -1,5 +1,5 @@
 import { CategoryPageSkeleton } from "@/components/LoadingSkeleton";
 
 export default function Loading() {
-  return <CategoryPageSkeleton title="Loading books…" />;
+  return <CategoryPageSkeleton type="book" />;
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import NavLink from "@/components/NavLink";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { profilePath, type AuthUserSummary } from "@/lib/auth";
+import { useNavigationPending } from "@/context/NavigationPendingContext";
 import { useSearchUI } from "@/context/SearchUIContext";
 import { createClient } from "@/utils/supabase/client";
 
@@ -15,19 +16,20 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user }: NavbarProps) {
-  const pathname = usePathname();
   const router = useRouter();
   const { openSearch } = useSearchUI();
+  const { displayPath, beginNavigation } = useNavigationPending();
   const [signingOut, setSigningOut] = useState(false);
 
   const profileHref = profilePath(user?.username);
   const onProfile =
-    Boolean(user?.username) && pathname === `/u/${user?.username}`;
+    Boolean(user?.username) && displayPath === `/u/${user?.username}`;
 
   async function handleSignOut() {
     setSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
+    beginNavigation("/");
     router.push("/");
     router.refresh();
     setSigningOut(false);
@@ -36,22 +38,22 @@ export default function Navbar({ user }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
-        <Link
+        <NavLink
           href="/"
           className="shrink-0 text-lg font-semibold tracking-tight text-white transition hover:text-emerald-400"
         >
           Stashd
-        </Link>
+        </NavLink>
 
         <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
           {NAV_LINKS.map((link) => {
             const active =
               link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
+                ? displayPath === "/"
+                : displayPath.startsWith(link.href);
 
             return (
-              <Link
+              <NavLink
                 key={link.href}
                 href={link.href}
                 className={cn(
@@ -62,7 +64,7 @@ export default function Navbar({ user }: NavbarProps) {
                 )}
               >
                 {link.label}
-              </Link>
+              </NavLink>
             );
           })}
         </nav>
@@ -78,7 +80,7 @@ export default function Navbar({ user }: NavbarProps) {
 
           {user ? (
             <>
-              <Link
+              <NavLink
                 href={profileHref}
                 className={cn(
                   "hidden items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition sm:inline-flex",
@@ -110,9 +112,9 @@ export default function Navbar({ user }: NavbarProps) {
                 <span className="max-w-[8rem] truncate">
                   {user.username ? `@${user.username}` : "Profile"}
                 </span>
-              </Link>
+              </NavLink>
 
-              <Link
+              <NavLink
                 href={profileHref}
                 className="inline-flex sm:hidden"
                 title="Profile"
@@ -132,7 +134,7 @@ export default function Navbar({ user }: NavbarProps) {
                       .toUpperCase()}
                   </span>
                 )}
-              </Link>
+              </NavLink>
 
               <button
                 type="button"
@@ -144,12 +146,12 @@ export default function Navbar({ user }: NavbarProps) {
               </button>
             </>
           ) : (
-            <Link
+            <NavLink
               href="/login"
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500"
             >
               Sign In
-            </Link>
+            </NavLink>
           )}
         </div>
       </div>
@@ -158,11 +160,11 @@ export default function Navbar({ user }: NavbarProps) {
         {NAV_LINKS.map((link) => {
           const active =
             link.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(link.href);
+              ? displayPath === "/"
+              : displayPath.startsWith(link.href);
 
           return (
-            <Link
+            <NavLink
               key={link.href}
               href={link.href}
               className={cn(
@@ -173,7 +175,7 @@ export default function Navbar({ user }: NavbarProps) {
               )}
             >
               {link.label}
-            </Link>
+            </NavLink>
           );
         })}
       </nav>

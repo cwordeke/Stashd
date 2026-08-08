@@ -1,5 +1,7 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import MediaCard from "@/components/MediaCard";
+import NavLink from "@/components/NavLink";
+import { MediaCardSkeleton } from "@/components/LoadingSkeleton";
 import { CATEGORY_META } from "@/lib/constants";
 import { getTrendingForType } from "@/lib/trending";
 import { MEDIA_TYPES, type UnifiedMediaItem } from "@/lib/types";
@@ -44,9 +46,29 @@ async function loadSpotlight(): Promise<UnifiedMediaItem[]> {
   return picks.filter((item): item is UnifiedMediaItem => item !== null);
 }
 
-export default async function HomePage() {
+async function SpotlightGrid() {
   const spotlight = await loadSpotlight();
 
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+      {spotlight.map((item) => (
+        <MediaCard key={`${item.mediaType}-${item.id}`} item={item} />
+      ))}
+    </div>
+  );
+}
+
+function SpotlightFallback() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+      {Array.from({ length: 5 }, (_, i) => (
+        <MediaCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+export default function HomePage() {
   return (
     <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
       <section className="space-y-4">
@@ -56,13 +78,13 @@ export default async function HomePage() {
         </h1>
         <div className="flex flex-wrap gap-2 pt-1">
           {MEDIA_TYPES.map((type) => (
-            <Link
+            <NavLink
               key={type}
               href={CATEGORY_META[type].href}
               className="rounded-full border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-emerald-600/50 hover:text-white"
             >
               {CATEGORY_META[type].title}
-            </Link>
+            </NavLink>
           ))}
         </div>
       </section>
@@ -97,14 +119,9 @@ export default async function HomePage() {
           </h2>
           <span className="text-xs text-zinc-500">One from each medium</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-          {spotlight.map((item) => (
-            <MediaCard
-              key={`${item.mediaType}-${item.id}`}
-              item={item}
-            />
-          ))}
-        </div>
+        <Suspense fallback={<SpotlightFallback />}>
+          <SpotlightGrid />
+        </Suspense>
       </section>
     </div>
   );
