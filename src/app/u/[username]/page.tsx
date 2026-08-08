@@ -47,6 +47,7 @@ export default async function PublicProfilePage({
     <PublicProfileView
       username={profile.username}
       avatarUrl={profile.avatarUrl}
+      bio={profile.bio}
       shelves={shelves}
       isOwner={isOwner}
     />

@@ -53,8 +53,9 @@ export async function claimUsername(
       id: user.id,
       username: normalized,
       avatar_url: avatarUrl,
+      bio: null,
     })
-    .select("id, username, avatar_url")
+    .select("id, username, avatar_url, bio")
     .single();
 
   if (error) {
@@ -74,6 +75,7 @@ export async function claimUsername(
       id: string;
       username: string;
       avatar_url: string | null;
+      bio: string | null;
     }
   );
   revalidatePath("/onboarding");
@@ -85,4 +87,59 @@ export async function claimUsername(
     profile,
     message: "Username claimed",
   };
+}
+
+const BIO_MAX_LENGTH = 280;
+
+export async function updateProfileBio(
+  bio: string
+): Promise<ProfileActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "Sign in to update your bio" };
+  }
+
+  const trimmed = bio.trim();
+  if (trimmed.length > BIO_MAX_LENGTH) {
+    return {
+      ok: false,
+      message: `Bio must be ${BIO_MAX_LENGTH} characters or fewer`,
+    };
+  }
+
+  const nextBio = trimmed.length > 0 ? trimmed : null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ bio: nextBio })
+    .eq("id", user.id)
+    .select("id, username, avatar_url, bio")
+    .single();
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message.includes("bio")
+        ? `${error.message} — run supabase/profiles_bio.sql in Supabase.`
+        : error.message,
+    };
+  }
+
+  const profile = rowToProfile(
+    data as {
+      id: string;
+      username: string;
+      avatar_url: string | null;
+      bio: string | null;
+    }
+  );
+
+  revalidatePath(`/u/${profile.username}`);
+  revalidatePath("/profile");
+
+  return { ok: true, profile, message: "Bio saved" };
 }

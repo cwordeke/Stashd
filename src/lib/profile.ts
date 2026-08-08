@@ -6,12 +6,14 @@ export interface Profile {
   id: string;
   username: string;
   avatarUrl: string | null;
+  bio: string | null;
 }
 
 interface ProfileRow {
   id: string;
   username: string;
   avatar_url: string | null;
+  bio?: string | null;
 }
 
 export function rowToProfile(row: ProfileRow): Profile {
@@ -19,20 +21,39 @@ export function rowToProfile(row: ProfileRow): Profile {
     id: row.id,
     username: row.username,
     avatarUrl: row.avatar_url,
+    bio: row.bio ?? null,
   };
+}
+
+async function selectProfile(
+  filter: { column: "id" | "username"; value: string }
+): Promise<Profile | null> {
+  const supabase = await createClient();
+
+  const withBio = await supabase
+    .from("profiles")
+    .select("id, username, avatar_url, bio")
+    .eq(filter.column, filter.value)
+    .maybeSingle();
+
+  if (!withBio.error && withBio.data) {
+    return rowToProfile(withBio.data as ProfileRow);
+  }
+
+  // Fallback before bio column migration is applied
+  const withoutBio = await supabase
+    .from("profiles")
+    .select("id, username, avatar_url")
+    .eq(filter.column, filter.value)
+    .maybeSingle();
+
+  if (withoutBio.error || !withoutBio.data) return null;
+  return rowToProfile({ ...(withoutBio.data as ProfileRow), bio: null });
 }
 
 export const getProfileByUserId = cache(
   async (userId: string): Promise<Profile | null> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return rowToProfile(data as ProfileRow);
+    return selectProfile({ column: "id", value: userId });
   }
 );
 
@@ -48,14 +69,9 @@ export const getOwnProfile = cache(async (): Promise<Profile | null> => {
 
 export const getProfileByUsername = cache(
   async (username: string): Promise<Profile | null> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url")
-      .eq("username", normalizeUsername(username))
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return rowToProfile(data as ProfileRow);
+    return selectProfile({
+      column: "username",
+      value: normalizeUsername(username),
+    });
   }
 );

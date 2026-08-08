@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
+import ProfileBio from "@/components/ProfileBio";
 import Top4Shelf from "@/components/Top4Shelf";
-import { useSearchUI } from "@/context/SearchUIContext";
 import { useStash } from "@/context/StashContext";
-import { MEDIA_TYPES, type StashShelves } from "@/lib/types";
+import { type MediaType, type StashShelves } from "@/lib/types";
+
+const GRID_TYPES: MediaType[] = ["movie", "tv", "game", "book"];
 
 interface PublicProfileViewProps {
   username: string;
   avatarUrl: string | null;
+  bio: string | null;
   shelves: StashShelves;
   isOwner: boolean;
 }
@@ -17,87 +19,66 @@ interface PublicProfileViewProps {
 export default function PublicProfileView({
   username,
   avatarUrl,
+  bio,
   shelves,
   isOwner,
 }: PublicProfileViewProps) {
-  const { openSearch } = useSearchUI();
   const { shelves: optimisticShelves } = useStash();
-  const [copied, setCopied] = useState(false);
 
   // Owners see optimistic shelves so add/remove updates instantly
   const displayShelves = isOwner ? optimisticShelves : shelves;
 
-  async function handleShare() {
-    const url = window.location.href;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      window.prompt("Copy this profile URL:", url);
-    }
-  }
-
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-start gap-4">
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt={`${username}'s avatar`}
-              width={64}
-              height={64}
-              className="rounded-full border border-zinc-700"
-            />
-          ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-xl font-semibold text-white">
-              {username.charAt(0).toUpperCase()}
-            </span>
-          )}
-          <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-500/80">
-              {isOwner ? "Your public stash" : "Public stash"}
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-white">
-              @{username}
-            </h1>
-            <p className="max-w-lg text-sm text-zinc-400">
-              Top 4 across movies, TV, games, books, and music.
-            </p>
-          </div>
-        </div>
+      <header className="flex flex-col items-center text-center">
+        {avatarUrl ? (
+          <Image
+            src={avatarUrl}
+            alt={`${username}'s avatar`}
+            width={96}
+            height={96}
+            className="rounded-full border border-zinc-700 shadow-lg shadow-black/40"
+            priority
+          />
+        ) : (
+          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-600 text-3xl font-semibold text-white shadow-lg shadow-black/40">
+            {username.charAt(0).toUpperCase()}
+          </span>
+        )}
 
-        <div className="flex flex-wrap gap-2">
-          {isOwner ? (
-            <button
-              type="button"
-              onClick={() => openSearch()}
-              className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
-            >
-              Edit / Add
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleShare}
-            className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900"
-          >
-            {copied ? "Copied!" : "Share Profile"}
-          </button>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          @{username}
+        </h1>
+
+        <div className="mt-3 w-full">
+          <ProfileBio
+            initialBio={bio}
+            isOwner={isOwner}
+            username={username}
+          />
         </div>
       </header>
 
-      <div className="space-y-10">
-        {MEDIA_TYPES.map((type) => (
+      <section className="space-y-8">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
+          {GRID_TYPES.map((type) => (
+            <Top4Shelf
+              key={type}
+              type={type}
+              items={displayShelves[type]}
+              editable={isOwner}
+            />
+          ))}
+        </div>
+
+        <div className="mx-auto w-full md:max-w-[calc(50%-1rem)]">
           <Top4Shelf
-            key={type}
-            type={type}
-            items={displayShelves[type]}
+            type="music"
+            items={displayShelves.music}
             editable={isOwner}
           />
-        ))}
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

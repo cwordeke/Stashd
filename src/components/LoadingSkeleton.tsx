@@ -95,28 +95,41 @@ export function HomePageSkeleton() {
 export function ProfilePageSkeleton() {
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="flex items-start gap-4">
-        <div className="h-16 w-16 animate-pulse rounded-full bg-zinc-800" />
-        <div className="space-y-2">
-          <div className="h-3 w-24 animate-pulse rounded bg-zinc-800" />
-          <div className="h-8 w-40 animate-pulse rounded bg-zinc-800" />
-          <div className="h-4 w-64 max-w-full animate-pulse rounded bg-zinc-800/70" />
-        </div>
+      <header className="flex flex-col items-center gap-3">
+        <div className="h-24 w-24 animate-pulse rounded-full bg-zinc-800" />
+        <div className="h-8 w-40 animate-pulse rounded bg-zinc-800" />
+        <div className="h-4 w-64 max-w-full animate-pulse rounded bg-zinc-800/70" />
       </header>
 
-      <div className="space-y-10">
-        {MEDIA_TYPES.map((type) => (
-          <section key={type} className="space-y-3">
-            <div className="h-5 w-48 animate-pulse rounded bg-zinc-800" />
-            <p className="sr-only">Loading {MEDIA_TYPE_LABELS[type]}</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {Array.from({ length: 4 }, (_, i) => (
-                <MediaCardSkeleton key={i} />
-              ))}
+      <section className="space-y-8">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
+          {(["movie", "tv", "game", "book"] as const).map((type) => (
+            <div key={type} className="space-y-2.5">
+              <div className="h-4 w-20 animate-pulse rounded bg-zinc-800" />
+              <p className="sr-only">Loading {MEDIA_TYPE_LABELS[type]}</p>
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-[2/3] animate-pulse rounded-lg bg-zinc-800"
+                  />
+                ))}
+              </div>
             </div>
-          </section>
-        ))}
-      </div>
+          ))}
+        </div>
+        <div className="mx-auto w-full space-y-2.5 md:max-w-[calc(50%-1rem)]">
+          <div className="h-4 w-24 animate-pulse rounded bg-zinc-800" />
+          <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div
+                key={i}
+                className="aspect-[2/3] animate-pulse rounded-lg bg-zinc-800"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
