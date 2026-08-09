@@ -18,7 +18,6 @@ import {
   removeStashItem as removeStashItemAction,
   type StashItem,
 } from "@/app/actions/stash";
-import { useToast } from "@/context/ToastContext";
 import {
   STASH_TOP_N,
   countByMediaType,
@@ -75,7 +74,6 @@ export function StashProvider({
   authReady = false,
 }: StashProviderProps) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [items, setItems] = useState<StashItem[]>([]);
@@ -139,16 +137,11 @@ export function StashProvider({
       }
 
       if (isInStash(item)) {
-        showToast("Already in your Top 4", "error");
         return;
       }
 
       const categoryCount = countByMediaType(optimisticItems, item.mediaType);
       if (categoryCount >= STASH_TOP_N) {
-        showToast(
-          "This category is already full! Remove an item first.",
-          "error"
-        );
         return;
       }
 
@@ -166,13 +159,6 @@ export function StashProvider({
         setPendingKey(null);
 
         if (!result.ok || !result.item) {
-          showToast(
-            result.ok
-              ? "Could not add item"
-              : result.message ||
-                  "This category is already full! Remove an item first.",
-            "error"
-          );
           return;
         }
 
@@ -180,7 +166,6 @@ export function StashProvider({
           if (prev.some((entry) => mediaKey(entry) === key)) return prev;
           return [...prev, result.item!];
         });
-        showToast(result.message, "success");
       });
     },
     [
@@ -189,7 +174,6 @@ export function StashProvider({
       isInStash,
       optimisticItems,
       router,
-      showToast,
     ]
   );
 
@@ -207,15 +191,13 @@ export function StashProvider({
         setPendingKey(null);
 
         if (!result.ok) {
-          showToast(result.message, "error");
           return;
         }
 
         setItems((prev) => prev.filter((entry) => entry.stashId !== stashId));
-        showToast(result.message, "success");
       });
     },
-    [dispatchOptimistic, showToast]
+    [dispatchOptimistic]
   );
 
   const value = useMemo(

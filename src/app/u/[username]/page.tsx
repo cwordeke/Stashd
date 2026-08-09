@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: PublicProfilePageProps) {
   }
 
   return {
-    title: `@${profile.username} · Stashd`,
-    description: `Check out @${profile.username}'s Top 4 stash on Stashd`,
+    title: `${profile.username} · Stashd`,
+    description: `Check out ${profile.username}'s Top 4 stash on Stashd`,
   };
 }
 

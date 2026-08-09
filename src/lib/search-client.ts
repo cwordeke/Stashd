@@ -171,20 +171,18 @@ function snapshot(columns: SearchColumns): SearchColumns {
   };
 }
 
-/** Source needed to satisfy a media-type filter (All → fast TMDB-first). */
-export function sourceForFilter(filterType: MediaType | null): SearchSource {
-  if (!filterType || filterType === "movie" || filterType === "tv") {
-    return "tmdb";
-  }
-  return filterType;
+/**
+ * Sources to query for a filter.
+ * All → every provider (parallel). A specific type → only that provider (fast).
+ */
+export function sourcesForFilter(filterType: MediaType | null): SearchSource[] {
+  if (!filterType) return [...ALL_SEARCH_SOURCES];
+  if (filterType === "movie" || filterType === "tv") return ["tmdb"];
+  return [filterType];
 }
 
-/** Sources still needed beyond the initial fast path when browsing All. */
-export function remainingSourcesForAll(
-  fetched: Iterable<SearchSource>
-): SearchSource[] {
-  const have = new Set(fetched);
-  return (["game", "book", "music"] as const).filter((s) => !have.has(s));
+export function sourceForFilter(filterType: MediaType | null): SearchSource {
+  return sourcesForFilter(filterType)[0];
 }
 
 export function mediaTypesForSource(source: SearchSource): MediaType[] {
@@ -240,7 +238,7 @@ export async function searchAllMedia(
 
 /**
  * Fetch only the given sources and merge into `base` columns.
- * Used for staged search: TMDB first, other providers on Load more / filter.
+ * Callers choose which sources (All → all in parallel; Books → books only).
  */
 export async function fetchSearchSources(
   query: string,

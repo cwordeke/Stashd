@@ -47,7 +47,7 @@ export default function PublicProfileView({
         )}
 
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          @{username}
+          {username}
         </h1>
 
         <div className="mt-3 w-full">

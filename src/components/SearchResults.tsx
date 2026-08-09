@@ -9,8 +9,8 @@ import {
   emptySearchColumns,
   fetchSearchSources,
   flattenRanked,
-  remainingSourcesForAll,
-  sourceForFilter,
+  mediaTypesForSource,
+  sourcesForFilter,
   type SearchColumns,
   type SearchSource,
 } from "@/lib/search-client";
@@ -24,6 +24,10 @@ import { cn } from "@/lib/cn";
 
 const PAGE_SIZE = 12;
 
+function hasAnyResults(columns: SearchColumns): boolean {
+  return MEDIA_TYPES.some((type) => columns[type].results.length > 0);
+}
+
 export default function SearchResults() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,7 +37,7 @@ export default function SearchResults() {
   const columnsRef = useRef<SearchColumns>(emptySearchColumns());
   const fetchedRef = useRef<Set<SearchSource>>(new Set());
   const requestIdRef = useRef(0);
-  const expandAbortRef = useRef<AbortController | null>(null);
+  const filterAbortRef = useRef<AbortController | null>(null);
 
   const q = searchParams.get("q")?.trim() ?? "";
   const typeParam = searchParams.get("type");
@@ -44,7 +48,7 @@ export default function SearchResults() {
   const [columns, setColumns] = useState<SearchColumns>(emptySearchColumns);
   const [fetchedSources, setFetchedSources] = useState<SearchSource[]>([]);
   const [initialLoading, setInitialLoading] = useState(false);
-  const [expanding, setExpanding] = useState(false);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -63,7 +67,8 @@ export default function SearchResults() {
     setInputValue(q);
   }, [q]);
 
-  // Fast path: only the source needed for the current filter (All → TMDB).
+  // New query: fetch sources for the active filter.
+  // All → all providers in parallel (paint as each returns). Typed → one provider.
   useEffect(() => {
     if (!q) {
       loadedQueryRef.current = null;
@@ -72,34 +77,41 @@ export default function SearchResults() {
       commitFetched(new Set());
       setHasSearched(false);
       setInitialLoading(false);
-      setExpanding(false);
+      setFilterLoading(false);
       setVisibleCount(PAGE_SIZE);
       return;
     }
 
     if (loadedQueryRef.current === q) return;
 
-    expandAbortRef.current?.abort();
+    filterAbortRef.current?.abort();
     const requestId = ++requestIdRef.current;
     const controller = new AbortController();
-    const initialSource = sourceForFilter(filterType);
+    const sources = sourcesForFilter(filterType);
 
     setInitialLoading(true);
     setHasSearched(true);
-    setExpanding(false);
+    setFilterLoading(false);
     commitColumns(emptySearchColumns());
     commitFetched(new Set());
     setLoadedQuery(null);
     setVisibleCount(PAGE_SIZE);
 
     void (async () => {
-      const next = await fetchSearchSources(q, [initialSource], {
+      const next = await fetchSearchSources(q, sources, {
         signal: controller.signal,
         onUpdate: (partial) => {
           if (requestId !== requestIdRef.current) return;
           commitColumns(partial);
-          const settled = !columnsStillLoading(partial);
-          if (settled || partial.movie.results.length || partial.tv.results.length) {
+
+          const settledSources = sources.filter((source) =>
+            mediaTypesForSource(source).every((type) => !partial[type].loading)
+          );
+          if (settledSources.length > 0) {
+            commitFetched(new Set([...fetchedRef.current, ...settledSources]));
+          }
+
+          if (hasAnyResults(partial) || settledSources.length > 0) {
             setLoadedQuery(q);
             setInitialLoading(false);
           }
@@ -108,32 +120,37 @@ export default function SearchResults() {
 
       if (requestId !== requestIdRef.current) return;
       commitColumns(next);
-      commitFetched(new Set([initialSource]));
+      commitFetched(new Set(sources));
       loadedQueryRef.current = q;
       setLoadedQuery(q);
       setInitialLoading(false);
     })();
 
     return () => controller.abort();
-    // Only re-run on new query — filter changes use on-demand fetch below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: filter must not refetch full search
+    // filterType read once per new query; chip changes handled below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  // If user picks a filter whose source isn't loaded yet, fetch just that source.
+  // Filter chip: fetch only missing sources for that type (no full reload).
   useEffect(() => {
     if (!q || loadedQueryRef.current !== q) return;
 
-    const needed = sourceForFilter(filterType);
-    if (fetchedRef.current.has(needed)) return;
-    if (columnsRef.current[mediaTypeForPending(needed)].loading) return;
+    const toFetch = sourcesForFilter(filterType).filter((source) => {
+      if (fetchedRef.current.has(source)) return false;
+      return !mediaTypesForSource(source).some(
+        (type) => columnsRef.current[type].loading
+      );
+    });
 
-    expandAbortRef.current?.abort();
+    if (toFetch.length === 0) return;
+
+    filterAbortRef.current?.abort();
     const controller = new AbortController();
-    expandAbortRef.current = controller;
-    setExpanding(true);
+    filterAbortRef.current = controller;
+    setFilterLoading(true);
 
     void (async () => {
-      const next = await fetchSearchSources(q, [needed], {
+      const next = await fetchSearchSources(q, toFetch, {
         signal: controller.signal,
         base: columnsRef.current,
         onUpdate: (partial) => {
@@ -143,8 +160,8 @@ export default function SearchResults() {
       });
       if (controller.signal.aborted || loadedQueryRef.current !== q) return;
       commitColumns(next);
-      commitFetched(new Set([...fetchedRef.current, needed]));
-      setExpanding(false);
+      commitFetched(new Set([...fetchedRef.current, ...toFetch]));
+      setFilterLoading(false);
     })();
 
     return () => controller.abort();
@@ -164,14 +181,8 @@ export default function SearchResults() {
         )
       : [];
   const visibleResults = rankedResults.slice(0, visibleCount);
-  const hasMoreLocal = rankedResults.length > visibleCount;
-  const deferredSources =
-    !filterType && loadedQuery === q
-      ? remainingSourcesForAll(fetchedSources)
-      : [];
-  const canExpandSources = deferredSources.length > 0;
-  const hasMore = hasMoreLocal || canExpandSources;
-  const sourcesPending = columnsStillLoading(columns) || expanding;
+  const hasMore = rankedResults.length > visibleCount;
+  const sourcesPending = columnsStillLoading(columns) || filterLoading;
   const anyError = MEDIA_TYPES.map((t) => columns[t].error).find(Boolean);
   const showEmpty =
     q &&
@@ -179,35 +190,6 @@ export default function SearchResults() {
     !initialLoading &&
     !sourcesPending &&
     rankedResults.length === 0;
-
-  async function handleLoadMore() {
-    if (hasMoreLocal) {
-      setVisibleCount((c) => c + PAGE_SIZE);
-      return;
-    }
-
-    if (!canExpandSources || !q) return;
-
-    expandAbortRef.current?.abort();
-    const controller = new AbortController();
-    expandAbortRef.current = controller;
-    setExpanding(true);
-
-    const next = await fetchSearchSources(q, deferredSources, {
-      signal: controller.signal,
-      base: columnsRef.current,
-      onUpdate: (partial) => {
-        if (loadedQueryRef.current !== q) return;
-        commitColumns(partial);
-      },
-    });
-
-    if (controller.signal.aborted || loadedQueryRef.current !== q) return;
-    commitColumns(next);
-    commitFetched(new Set([...fetchedRef.current, ...deferredSources]));
-    setVisibleCount((c) => c + PAGE_SIZE);
-    setExpanding(false);
-  }
 
   function replaceParams(nextQ: string, nextType: MediaType | null) {
     const params = new URLSearchParams();
@@ -318,19 +300,20 @@ export default function SearchResults() {
             ))}
           </div>
 
+          {sourcesPending && (
+            <p className="mt-4 text-sm text-zinc-500">
+              Searching other sources…
+            </p>
+          )}
+
           {hasMore && (
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
-                onClick={() => void handleLoadMore()}
-                disabled={expanding && !hasMoreLocal}
-                className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-sm text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-sm text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
               >
-                {expanding && !hasMoreLocal
-                  ? "Loading…"
-                  : canExpandSources && !hasMoreLocal
-                    ? "Load more sources"
-                    : "Load more"}
+                Load more
               </button>
             </div>
           )}
@@ -339,18 +322,12 @@ export default function SearchResults() {
 
       {q &&
         !initialLoading &&
-        expanding &&
-        visibleResults.length === 0 &&
-        filterType && (
+        sourcesPending &&
+        visibleResults.length === 0 && (
           <p className="mt-2 text-sm text-zinc-500">Loading…</p>
         )}
     </div>
   );
-}
-
-function mediaTypeForPending(source: SearchSource): MediaType {
-  if (source === "tmdb") return "movie";
-  return source;
 }
 
 function FilterChip({

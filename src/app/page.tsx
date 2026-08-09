@@ -3,6 +3,7 @@ import MediaCard from "@/components/MediaCard";
 import NavLink from "@/components/NavLink";
 import { MediaCardSkeleton } from "@/components/LoadingSkeleton";
 import { CATEGORY_META } from "@/lib/constants";
+import { getOwnProfile } from "@/lib/profile";
 import { getTrendingForType } from "@/lib/trending";
 import { MEDIA_TYPES, type UnifiedMediaItem } from "@/lib/types";
 
@@ -68,13 +69,23 @@ function SpotlightFallback() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const profile = await getOwnProfile();
+  const username = profile?.username;
+
   return (
     <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
       <section className="space-y-4">
         <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          Welcome back, <span className="text-emerald-400">User,</span> here&apos;s
-          what&apos;s new...
+          {username ? (
+            <>
+              Welcome back,{" "}
+              <span className="text-emerald-400">{username},</span> here&apos;s
+              what&apos;s new...
+            </>
+          ) : (
+            <>Welcome — here&apos;s what&apos;s new...</>
+          )}
         </h1>
         <div className="flex flex-wrap gap-2 pt-1">
           {MEDIA_TYPES.map((type) => (

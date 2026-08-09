@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { updateProfileBio } from "@/app/actions/profile";
-import { useToast } from "@/context/ToastContext";
 import { cn } from "@/lib/cn";
 
 const BIO_MAX_LENGTH = 280;
@@ -18,7 +17,6 @@ export default function ProfileBio({
   isOwner,
   username,
 }: ProfileBioProps) {
-  const { showToast } = useToast();
   const [bio, setBio] = useState(initialBio ?? "");
   const [draft, setDraft] = useState(initialBio ?? "");
   const [editing, setEditing] = useState(false);
@@ -58,7 +56,6 @@ export default function ProfileBio({
     if (!result.ok) {
       setBio(previous);
       setDraft(previous);
-      showToast(result.message, "error");
       return;
     }
 
@@ -141,7 +138,7 @@ export default function ProfileBio({
       )}
       title="Edit bio"
     >
-      {bio.trim() || `Add a bio for @${username}…`}
+      {bio.trim() || `Add a bio for ${username}…`}
     </button>
   );
 }

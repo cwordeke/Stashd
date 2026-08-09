@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { setMediaLogState } from "@/app/actions/media-logs";
-import { useToast } from "@/context/ToastContext";
 import { cn } from "@/lib/cn";
 import {
   mediaStatusLabels,
@@ -25,7 +24,6 @@ export default function MediaStatusControls({
   isAuthenticated,
 }: MediaStatusControlsProps) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [state, setState] = useState(initialState);
   const stateRef = useRef(state);
   const syncedRef = useRef(initialState);
@@ -57,7 +55,6 @@ export default function MediaStatusControls({
         if (!result.ok) {
           setState(syncedRef.current);
           stateRef.current = syncedRef.current;
-          showToast(result.message, "error");
           return;
         }
 

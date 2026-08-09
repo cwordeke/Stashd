@@ -83,7 +83,7 @@ export default function Navbar({ user }: NavbarProps) {
                 )}
                 title={
                   user.username
-                    ? `@${user.username}`
+                    ? user.username
                     : (user.name ?? user.email ?? "Profile")
                 }
               >
@@ -103,7 +103,7 @@ export default function Navbar({ user }: NavbarProps) {
                   </span>
                 )}
                 <span className="max-w-[8rem] truncate">
-                  {user.username ? `@${user.username}` : "Profile"}
+                  {user.username ? user.username : "Profile"}
                 </span>
               </NavLink>
 

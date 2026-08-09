@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { NavigationPendingProvider, useNavigationPending } from "@/context/NavigationPendingContext";
 import { StashProvider } from "@/context/StashContext";
-import { ToastProvider } from "@/context/ToastContext";
 import Navbar from "@/components/Navbar";
 import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
@@ -90,15 +89,13 @@ export default function AppShell({ children }: AppShellProps) {
   }, []);
 
   return (
-    <ToastProvider>
-      <NavigationPendingProvider>
-        <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
-          <div className="flex min-h-screen flex-col">
-            <Navbar user={user} />
-            <MainContent>{children}</MainContent>
-          </div>
-        </StashProvider>
-      </NavigationPendingProvider>
-    </ToastProvider>
+    <NavigationPendingProvider>
+      <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
+        <div className="flex min-h-screen flex-col">
+          <Navbar user={user} />
+          <MainContent>{children}</MainContent>
+        </div>
+      </StashProvider>
+    </NavigationPendingProvider>
   );
 }

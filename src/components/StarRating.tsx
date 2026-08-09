@@ -3,7 +3,6 @@
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { clearMediaRating, rateMedia } from "@/app/actions/ratings";
-import { useToast } from "@/context/ToastContext";
 import { cn } from "@/lib/cn";
 import type { MediaType } from "@/lib/types";
 
@@ -24,7 +23,6 @@ export default function StarRating({
   compact = false,
 }: StarRatingProps) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [rating, setRating] = useState<number | null>(initialRating);
@@ -53,12 +51,10 @@ export default function StarRating({
       const result = await rateMedia(mediaId, mediaType, value);
 
       if (!result.ok) {
-        showToast(result.message, "error");
         return;
       }
 
       setRating(result.rating);
-      showToast(`Rated ${result.rating}★`, "success");
       router.refresh();
     });
   }
@@ -71,12 +67,10 @@ export default function StarRating({
       const result = await clearMediaRating(mediaId, mediaType);
 
       if (!result.ok) {
-        showToast(result.message, "error");
         return;
       }
 
       setRating(null);
-      showToast("Rating cleared", "success");
       router.refresh();
     });
   }
