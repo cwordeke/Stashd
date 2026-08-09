@@ -33,7 +33,7 @@ export async function searchBooks(query: string): Promise<UnifiedMediaItem[]> {
     "key,title,author_name,first_publish_year,cover_i"
   );
 
-  const res = await fetch(url.toString(), { next: { revalidate: 0 } });
+  const res = await fetch(url.toString(), { next: { revalidate: 120 } });
   if (!res.ok) throw new Error(`Open Library request failed: ${res.status}`);
 
   const data = (await res.json()) as OpenLibraryResponse;

@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { NavigationPendingProvider, useNavigationPending } from "@/context/NavigationPendingContext";
-import { SearchUIProvider } from "@/context/SearchUIContext";
 import { StashProvider } from "@/context/StashContext";
 import { ToastProvider } from "@/context/ToastContext";
 import Navbar from "@/components/Navbar";
-import SearchModal from "@/components/SearchModal";
 import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/client";
@@ -93,17 +91,14 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <ToastProvider>
-      <SearchUIProvider>
-        <NavigationPendingProvider>
-          <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
-            <div className="flex min-h-screen flex-col">
-              <Navbar user={user} />
-              <MainContent>{children}</MainContent>
-            </div>
-            <SearchModal />
-          </StashProvider>
-        </NavigationPendingProvider>
-      </SearchUIProvider>
+      <NavigationPendingProvider>
+        <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
+          <div className="flex min-h-screen flex-col">
+            <Navbar user={user} />
+            <MainContent>{children}</MainContent>
+          </div>
+        </StashProvider>
+      </NavigationPendingProvider>
     </ToastProvider>
   );
 }

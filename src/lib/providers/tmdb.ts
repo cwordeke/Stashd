@@ -74,7 +74,7 @@ export async function searchTmdb(query: string) {
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("page", "1");
 
-  const res = await fetch(url.toString(), { next: { revalidate: 0 } });
+  const res = await fetch(url.toString(), { next: { revalidate: 120 } });
   if (!res.ok) throw new Error(`TMDB request failed: ${res.status}`);
 
   const data = (await res.json()) as {

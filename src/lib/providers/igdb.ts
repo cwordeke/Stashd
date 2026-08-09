@@ -67,7 +67,7 @@ export async function searchGames(query: string): Promise<UnifiedMediaItem[]> {
     "limit 10;",
   ].join(" ");
 
-  return mapGames(await igdbQuery(body, 0));
+  return mapGames(await igdbQuery(body, 120));
 }
 
 export async function getTrendingGames(): Promise<UnifiedMediaItem[]> {

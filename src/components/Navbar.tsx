@@ -8,7 +8,7 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { profilePath, type AuthUserSummary } from "@/lib/auth";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
-import { useSearchUI } from "@/context/SearchUIContext";
+import SearchBar from "@/components/SearchBar";
 import { createClient } from "@/utils/supabase/client";
 
 interface NavbarProps {
@@ -17,7 +17,6 @@ interface NavbarProps {
 
 export default function Navbar({ user }: NavbarProps) {
   const router = useRouter();
-  const { openSearch } = useSearchUI();
   const { displayPath, beginNavigation } = useNavigationPending();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -69,14 +68,8 @@ export default function Navbar({ user }: NavbarProps) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => openSearch()}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
-          >
-            Search
-          </button>
+        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:max-w-none md:flex-none">
+          <SearchBar />
 
           {user ? (
             <>

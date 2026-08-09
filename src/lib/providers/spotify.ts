@@ -62,7 +62,7 @@ export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 0 },
+    next: { revalidate: 120 },
   });
 
   if (!res.ok) throw new Error(`Spotify request failed: ${res.status}`);
