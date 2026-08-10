@@ -41,7 +41,13 @@ export async function getUserRating(
 export async function rateMedia(
   mediaId: string,
   mediaType: string,
-  rating: number
+  rating: number,
+  meta?: {
+    title?: string;
+    creator?: string;
+    year?: string;
+    thumbnail?: string | null;
+  }
 ): Promise<RatingActionResult> {
   const supabase = await createClient();
   const {
@@ -61,18 +67,26 @@ export async function rateMedia(
     return { ok: false, message: "Rating must be between 0.5 and 5" };
   }
 
-  const { error } = await supabase.from("user_ratings").upsert(
-    {
-      user_id: user.id,
-      media_id: mediaId,
-      media_type: mediaType,
-      rating: clamped,
-    },
-    { onConflict: "user_id,media_id,media_type" }
-  );
+  const now = new Date().toISOString();
+  const payload: Record<string, unknown> = {
+    user_id: user.id,
+    media_id: mediaId,
+    media_type: mediaType,
+    rating: clamped,
+    updated_at: now,
+  };
+
+  if (meta?.title) payload.title = meta.title;
+  if (meta?.creator) payload.creator = meta.creator;
+  if (meta?.year) payload.release_year = meta.year;
+  if (meta?.thumbnail !== undefined) payload.image_url = meta.thumbnail;
+
+  const { error } = await supabase.from("user_ratings").upsert(payload, {
+    onConflict: "user_id,media_id,media_type",
+  });
 
   if (error) {
-    // Fallback if unique constraint name differs: update-or-insert manually
+    // Fallback if unique constraint / metadata columns differ
     const { data: existing } = await supabase
       .from("user_ratings")
       .select("id")
@@ -81,25 +95,48 @@ export async function rateMedia(
       .eq("media_type", mediaType)
       .maybeSingle();
 
+    const minimal = {
+      rating: clamped,
+      ...(meta?.title ? { title: meta.title } : {}),
+      ...(meta?.creator ? { creator: meta.creator } : {}),
+      ...(meta?.year ? { release_year: meta.year } : {}),
+      ...(meta?.thumbnail !== undefined ? { image_url: meta.thumbnail } : {}),
+    };
+
     if (existing?.id) {
       const { error: updateError } = await supabase
         .from("user_ratings")
-        .update({ rating: clamped })
+        .update(minimal)
         .eq("id", existing.id);
 
       if (updateError) {
-        return { ok: false, message: updateError.message };
+        // Last resort: rating only
+        const { error: ratingOnly } = await supabase
+          .from("user_ratings")
+          .update({ rating: clamped })
+          .eq("id", existing.id);
+        if (ratingOnly) {
+          return { ok: false, message: ratingOnly.message };
+        }
       }
     } else {
       const { error: insertError } = await supabase.from("user_ratings").insert({
         user_id: user.id,
         media_id: mediaId,
         media_type: mediaType,
-        rating: clamped,
+        ...minimal,
       });
 
       if (insertError) {
-        return { ok: false, message: insertError.message || error.message };
+        const { error: bareInsert } = await supabase.from("user_ratings").insert({
+          user_id: user.id,
+          media_id: mediaId,
+          media_type: mediaType,
+          rating: clamped,
+        });
+        if (bareInsert) {
+          return { ok: false, message: bareInsert.message || error.message };
+        }
       }
     }
   }

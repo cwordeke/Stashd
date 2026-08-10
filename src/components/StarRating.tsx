@@ -13,6 +13,12 @@ interface StarRatingProps {
   isAuthenticated: boolean;
   /** Compact under-poster layout (no card chrome) */
   compact?: boolean;
+  mediaMeta?: {
+    title: string;
+    creator: string;
+    year: string;
+    thumbnail: string | null;
+  };
 }
 
 export default function StarRating({
@@ -21,6 +27,7 @@ export default function StarRating({
   initialRating,
   isAuthenticated,
   compact = false,
+  mediaMeta,
 }: StarRatingProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -48,7 +55,7 @@ export default function StarRating({
 
     startTransition(async () => {
       setOptimisticRating(value);
-      const result = await rateMedia(mediaId, mediaType, value);
+      const result = await rateMedia(mediaId, mediaType, value, mediaMeta);
 
       if (!result.ok) {
         return;

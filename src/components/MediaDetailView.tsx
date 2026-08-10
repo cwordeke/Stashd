@@ -94,6 +94,12 @@ export default function MediaDetailView({
               initialRating={initialRating}
               isAuthenticated={isAuthenticated}
               compact
+              mediaMeta={{
+                title: details.title,
+                creator: details.creator,
+                year: details.year,
+                thumbnail: details.thumbnail,
+              }}
             />
 
             <MediaStatusControls
@@ -101,6 +107,12 @@ export default function MediaDetailView({
               mediaType={details.mediaType}
               initialState={initialLog}
               isAuthenticated={isAuthenticated}
+              mediaMeta={{
+                title: details.title,
+                creator: details.creator,
+                year: details.year,
+                thumbnail: details.thumbnail,
+              }}
             />
 
             <button

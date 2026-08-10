@@ -63,7 +63,13 @@ export async function getUserMediaLog(
 export async function setMediaLogState(
   mediaId: string,
   mediaType: string,
-  state: MediaLogState
+  state: MediaLogState,
+  meta?: {
+    title?: string;
+    creator?: string;
+    year?: string;
+    thumbnail?: string | null;
+  }
 ): Promise<MediaLogActionResult> {
   const supabase = await createClient();
   const {
@@ -112,12 +118,17 @@ export async function setMediaLogState(
     return { ok: true, state: next, message: "Updated" };
   }
 
-  const fields = {
+  const fields: Record<string, unknown> = {
     status: nextStatus,
     on_list: next.onList,
     is_liked: next.liked,
     updated_at: updatedAt,
   };
+
+  if (meta?.title) fields.title = meta.title;
+  if (meta?.creator) fields.creator = meta.creator;
+  if (meta?.year) fields.release_year = meta.year;
+  if (meta?.thumbnail !== undefined) fields.image_url = meta.thumbnail;
 
   if (existing?.id) {
     const { error: updateError } = await supabase
@@ -126,10 +137,22 @@ export async function setMediaLogState(
       .eq("id", existing.id);
 
     if (updateError) {
-      return {
-        ok: false,
-        message: `${updateError.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
-      };
+      const { error: bareUpdate } = await supabase
+        .from("user_media_logs")
+        .update({
+          status: nextStatus,
+          on_list: next.onList,
+          is_liked: next.liked,
+          updated_at: updatedAt,
+        })
+        .eq("id", existing.id);
+
+      if (bareUpdate) {
+        return {
+          ok: false,
+          message: `${bareUpdate.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
+        };
+      }
     }
   } else {
     const { error: insertError } = await supabase
@@ -142,10 +165,24 @@ export async function setMediaLogState(
       });
 
     if (insertError) {
-      return {
-        ok: false,
-        message: `${insertError.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
-      };
+      const { error: bareInsert } = await supabase
+        .from("user_media_logs")
+        .insert({
+          user_id: user.id,
+          media_id: mediaId,
+          media_type: mediaType,
+          status: nextStatus,
+          on_list: next.onList,
+          is_liked: next.liked,
+          updated_at: updatedAt,
+        });
+
+      if (bareInsert) {
+        return {
+          ok: false,
+          message: `${bareInsert.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
+        };
+      }
     }
   }
 

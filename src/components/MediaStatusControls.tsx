@@ -15,6 +15,12 @@ interface MediaStatusControlsProps {
   mediaType: MediaType;
   initialState: MediaLogState;
   isAuthenticated: boolean;
+  mediaMeta?: {
+    title: string;
+    creator: string;
+    year: string;
+    thumbnail: string | null;
+  };
 }
 
 export default function MediaStatusControls({
@@ -22,6 +28,7 @@ export default function MediaStatusControls({
   mediaType,
   initialState,
   isAuthenticated,
+  mediaMeta,
 }: MediaStatusControlsProps) {
   const router = useRouter();
   const [state, setState] = useState(initialState);
@@ -50,7 +57,12 @@ export default function MediaStatusControls({
         }
 
         const snapshot = { ...latest };
-        const result = await setMediaLogState(mediaId, mediaType, snapshot);
+        const result = await setMediaLogState(
+          mediaId,
+          mediaType,
+          snapshot,
+          mediaMeta
+        );
 
         if (!result.ok) {
           setState(syncedRef.current);
