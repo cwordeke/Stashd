@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import MediaDetailView from "@/components/MediaDetailView";
+import { hasUserLoggedMedia } from "@/app/actions/diary";
 import { getUserMediaLog } from "@/app/actions/media-logs";
 import { getUserRating } from "@/app/actions/ratings";
-import { isMediaInUserStash } from "@/app/actions/stash";
 import { EMPTY_MEDIA_LOG } from "@/lib/media-status";
 import { getMediaDetails } from "@/lib/providers/details";
 import { isMediaType } from "@/lib/types";
@@ -54,11 +54,11 @@ export default async function MediaDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [initialRating, initialLog, initialInStash] = user
+  const [initialRating, initialLog, hasLoggedBefore] = user
     ? await Promise.all([
         getUserRating(details.id, details.mediaType),
         getUserMediaLog(details.id, details.mediaType),
-        isMediaInUserStash(details.id, details.mediaType),
+        hasUserLoggedMedia(details.id, details.mediaType),
       ])
     : [null, EMPTY_MEDIA_LOG, false];
 
@@ -67,7 +67,7 @@ export default async function MediaDetailPage({
       details={details}
       initialRating={initialRating}
       initialLog={initialLog}
-      initialInStash={initialInStash}
+      hasLoggedBefore={hasLoggedBefore}
       isAuthenticated={Boolean(user)}
     />
   );

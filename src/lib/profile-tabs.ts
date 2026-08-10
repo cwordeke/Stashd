@@ -45,6 +45,7 @@ export interface DiaryEntry {
   thumbnail: string | null;
   rating: number | null;
   liked: boolean;
+  isRewatch: boolean;
   loggedOn: string;
 }
 

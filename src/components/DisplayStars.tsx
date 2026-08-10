@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 interface DisplayStarsProps {
   rating: number;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -14,11 +14,13 @@ export default function DisplayStars({
   size = "sm",
   className,
 }: DisplayStarsProps) {
-  const starSize = size === "sm" ? "h-3.5 w-3.5" : "h-5 w-5";
+  const starSize =
+    size === "lg" ? "h-7 w-7" : size === "md" ? "h-5 w-5" : "h-3.5 w-3.5";
+  const gap = size === "lg" ? "gap-1" : "gap-0.5";
 
   return (
     <div
-      className={cn("flex items-center gap-0.5", className)}
+      className={cn("flex items-center", gap, className)}
       aria-label={`${rating} out of 5 stars`}
     >
       {[1, 2, 3, 4, 5].map((star) => {

@@ -3,13 +3,11 @@ import type { UnifiedMediaItem } from "@/lib/types";
 
 interface MediaGridProps {
   items: UnifiedMediaItem[];
-  showAddButton?: boolean;
   emptyMessage?: string;
 }
 
 export default function MediaGrid({
   items,
-  showAddButton = false,
   emptyMessage = "Nothing here yet.",
 }: MediaGridProps) {
   if (!items.length) {
@@ -23,11 +21,7 @@ export default function MediaGrid({
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {items.map((item) => (
-        <MediaCard
-          key={`${item.mediaType}-${item.id}`}
-          item={item}
-          showAddButton={showAddButton}
-        />
+        <MediaCard key={`${item.mediaType}-${item.id}`} item={item} />
       ))}
     </div>
   );

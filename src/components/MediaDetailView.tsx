@@ -1,18 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { MEDIA_TYPE_LABELS, type MediaDetails } from "@/lib/types";
-import { cn } from "@/lib/cn";
-import type { MediaLogState } from "@/lib/media-status";
-import { useStash } from "@/context/StashContext";
-import StarRating from "@/components/StarRating";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import LogMediaModal from "@/components/LogMediaModal";
 import MediaStatusControls from "@/components/MediaStatusControls";
+import StarRating from "@/components/StarRating";
+import type { MediaLogState } from "@/lib/media-status";
+import { MEDIA_TYPE_LABELS, type MediaDetails } from "@/lib/types";
 
 interface MediaDetailViewProps {
   details: MediaDetails;
   initialRating: number | null;
   initialLog: MediaLogState;
-  initialInStash: boolean;
+  hasLoggedBefore: boolean;
   isAuthenticated: boolean;
 }
 
@@ -20,18 +21,29 @@ export default function MediaDetailView({
   details,
   initialRating,
   initialLog,
-  initialInStash,
+  hasLoggedBefore,
   isAuthenticated,
 }: MediaDetailViewProps) {
-  const { addToStash, isInStash, isPending, pendingKey, stashReady } =
-    useStash();
-  // Prefer live stash once loaded; until then use the server-known value
-  // so we never flash green → grey for items already stashed.
-  const inStash = stashReady ? isInStash(details) : initialInStash;
-  const itemKey = `${details.mediaType}:${details.id}`;
-  const thisPending = isPending && pendingKey === itemKey;
+  const router = useRouter();
+  const [logOpen, setLogOpen] = useState(false);
+  const [loggedBefore, setLoggedBefore] = useState(hasLoggedBefore);
   const hasBackdrop = Boolean(details.backdropUrl);
   const bannerSrc = details.backdropUrl ?? details.thumbnail;
+
+  useEffect(() => {
+    setLoggedBefore(hasLoggedBefore);
+  }, [hasLoggedBefore]);
+
+  function handleLogClick() {
+    if (!isAuthenticated) {
+      const next = encodeURIComponent(
+        `${window.location.pathname}${window.location.search}`
+      );
+      router.push(`/login?next=${next}`);
+      return;
+    }
+    setLogOpen(true);
+  }
 
   return (
     <div className="pb-16">
@@ -69,7 +81,7 @@ export default function MediaDetailView({
       {/* Content overlay — poster floats over banner edge */}
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
         <div className="-mt-28 grid gap-8 sm:-mt-32 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-10">
-          {/* Poster + rating / status / stash */}
+          {/* Poster + rating / status / log */}
           <div className="mx-auto w-40 shrink-0 space-y-3 sm:mx-0 sm:w-44 lg:w-[180px]">
             <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-900 shadow-2xl shadow-black/60">
               {details.thumbnail ? (
@@ -117,20 +129,10 @@ export default function MediaDetailView({
 
             <button
               type="button"
-              onClick={() => addToStash(details)}
-              disabled={inStash || thisPending}
-              className={cn(
-                "w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition",
-                inStash
-                  ? "cursor-default bg-zinc-800 text-zinc-500"
-                  : "bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60"
-              )}
+              onClick={handleLogClick}
+              className="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500"
             >
-              {inStash
-                ? "In Stash"
-                : thisPending
-                  ? "Saving…"
-                  : "Add to Stash"}
+              {loggedBefore ? "Log Again" : "Log"}
             </button>
           </div>
 
@@ -177,6 +179,14 @@ export default function MediaDetailView({
           </div>
         </div>
       </div>
+
+      <LogMediaModal
+        details={details}
+        isRepeatLog={loggedBefore}
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        onLogged={() => setLoggedBefore(true)}
+      />
     </div>
   );
 }

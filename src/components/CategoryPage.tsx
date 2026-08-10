@@ -19,7 +19,7 @@ async function CategoryResults({ type }: { type: MediaType }) {
           Unable to load trending items at this time.
         </p>
       ) : null}
-      <MediaGrid items={results} showAddButton />
+      <MediaGrid items={results} />
     </div>
   );
 }

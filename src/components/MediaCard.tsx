@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { MouseEvent } from "react";
 import DisplayStars from "@/components/DisplayStars";
 import {
   MEDIA_TYPE_LABELS,
@@ -10,45 +9,21 @@ import {
   type UnifiedMediaItem,
 } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { useStash } from "@/context/StashContext";
 
 interface MediaCardProps {
   item: UnifiedMediaItem & { stashId?: string };
-  showAddButton?: boolean;
   compact?: boolean;
-  onRemove?: () => void;
   rating?: number | null;
   liked?: boolean;
 }
 
 export default function MediaCard({
   item,
-  showAddButton = false,
   compact = false,
-  onRemove,
   rating = null,
   liked = false,
 }: MediaCardProps) {
-  const { addToStash, isInStash, isPending, pendingKey } = useStash();
-  const inStash = isInStash(item);
-  const itemKey = `${item.mediaType}:${item.id}`;
-  const thisPending =
-    isPending &&
-    (pendingKey === itemKey ||
-      (item.stashId != null && pendingKey === item.stashId));
   const href = mediaDetailPath(item.mediaType, item.id);
-
-  function handleAdd(e: MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    addToStash(item);
-  }
-
-  function handleRemove(e: MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    onRemove?.();
-  }
 
   return (
     <article
@@ -104,37 +79,6 @@ export default function MediaCard({
           <p className="text-xs text-zinc-500">{item.year}</p>
         </div>
       </Link>
-
-      {(showAddButton || onRemove) && (
-        <div className={cn("px-3 pb-3", compact && "px-2 pb-2")}>
-          {showAddButton && (
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={inStash || thisPending}
-              className={cn(
-                "mt-0 w-full rounded-lg px-2.5 py-1.5 text-xs font-medium transition",
-                inStash
-                  ? "cursor-default bg-zinc-800 text-zinc-500"
-                  : "bg-emerald-600/90 text-white hover:bg-emerald-500 disabled:opacity-60"
-              )}
-            >
-              {inStash ? "In Stash" : thisPending ? "Saving…" : "Add to Stash"}
-            </button>
-          )}
-
-          {onRemove && (
-            <button
-              type="button"
-              onClick={handleRemove}
-              disabled={thisPending}
-              className="mt-2 w-full rounded-lg border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-300 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60"
-            >
-              Remove
-            </button>
-          )}
-        </div>
-      )}
     </article>
   );
 }

@@ -11,28 +11,23 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 import {
-  addStashItem as addStashItemAction,
   getUserStash,
   removeStashItem as removeStashItemAction,
   type StashItem,
 } from "@/app/actions/stash";
-import {
-  STASH_TOP_N,
-  countByMediaType,
-  shelvesFromItems,
-} from "@/lib/stash-utils";
+import { shelvesFromItems } from "@/lib/stash-utils";
 import {
   mediaKey,
-  type MediaType,
   type StashShelves,
   type UnifiedMediaItem,
 } from "@/lib/types";
 
-type OptimisticAction =
-  | { type: "add"; item: StashItem }
-  | { type: "remove"; stashId: string; mediaKey?: string };
+type OptimisticAction = {
+  type: "remove";
+  stashId: string;
+  mediaKey?: string;
+};
 
 interface StashState {
   shelves: StashShelves;
@@ -40,10 +35,7 @@ interface StashState {
   pendingKey: string | null;
   /** False until auth + initial stash fetch have finished */
   stashReady: boolean;
-  addToStash: (item: UnifiedMediaItem) => void;
   removeFromStash: (stashId: string, item?: UnifiedMediaItem) => void;
-  isInStash: (item: UnifiedMediaItem) => boolean;
-  getCategoryCount: (mediaType: MediaType) => number;
 }
 
 const StashContext = createContext<StashState | null>(null);
@@ -52,13 +44,6 @@ function applyOptimistic(
   state: StashItem[],
   action: OptimisticAction
 ): StashItem[] {
-  if (action.type === "add") {
-    if (state.some((item) => mediaKey(item) === mediaKey(action.item))) {
-      return state;
-    }
-    return [...state, action.item];
-  }
-
   return state.filter((item) => item.stashId !== action.stashId);
 }
 
@@ -73,7 +58,6 @@ export function StashProvider({
   isAuthenticated = false,
   authReady = false,
 }: StashProviderProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [items, setItems] = useState<StashItem[]>([]);
@@ -113,70 +97,6 @@ export function StashProvider({
     [optimisticItems]
   );
 
-  const isInStash = useCallback(
-    (item: UnifiedMediaItem) =>
-      optimisticItems.some((entry) => mediaKey(entry) === mediaKey(item)),
-    [optimisticItems]
-  );
-
-  const getCategoryCount = useCallback(
-    (mediaType: MediaType) => countByMediaType(optimisticItems, mediaType),
-    [optimisticItems]
-  );
-
-  const addToStash = useCallback(
-    (item: UnifiedMediaItem) => {
-      if (!isAuthenticated) {
-        const next = encodeURIComponent(
-          typeof window !== "undefined"
-            ? `${window.location.pathname}${window.location.search}`
-            : "/"
-        );
-        router.push(`/login?next=${next}`);
-        return;
-      }
-
-      if (isInStash(item)) {
-        return;
-      }
-
-      const categoryCount = countByMediaType(optimisticItems, item.mediaType);
-      if (categoryCount >= STASH_TOP_N) {
-        return;
-      }
-
-      const key = mediaKey(item);
-      const optimisticItem: StashItem = {
-        ...item,
-        stashId: `optimistic-${key}`,
-      };
-
-      setPendingKey(key);
-      startTransition(async () => {
-        dispatchOptimistic({ type: "add", item: optimisticItem });
-
-        const result = await addStashItemAction(item);
-        setPendingKey(null);
-
-        if (!result.ok || !result.item) {
-          return;
-        }
-
-        setItems((prev) => {
-          if (prev.some((entry) => mediaKey(entry) === key)) return prev;
-          return [...prev, result.item!];
-        });
-      });
-    },
-    [
-      dispatchOptimistic,
-      isAuthenticated,
-      isInStash,
-      optimisticItems,
-      router,
-    ]
-  );
-
   const removeFromStash = useCallback(
     (stashId: string, item?: UnifiedMediaItem) => {
       setPendingKey(stashId);
@@ -206,21 +126,9 @@ export function StashProvider({
       isPending,
       pendingKey,
       stashReady,
-      addToStash,
       removeFromStash,
-      isInStash,
-      getCategoryCount,
     }),
-    [
-      shelves,
-      isPending,
-      pendingKey,
-      stashReady,
-      addToStash,
-      removeFromStash,
-      isInStash,
-      getCategoryCount,
-    ]
+    [shelves, isPending, pendingKey, stashReady, removeFromStash]
   );
 
   return (

@@ -1,23 +1,30 @@
--- Diary entries for Letterboxd-style profile diary timeline.
+-- Matches the live diary_entries schema used in Supabase.
 CREATE TABLE IF NOT EXISTS public.diary_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   media_id TEXT NOT NULL,
   media_type TEXT NOT NULL,
-  title TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL,
+  -- creator is optional; app does not require it for inserts
   creator TEXT,
   image_url TEXT,
   release_year TEXT,
   rating NUMERIC(2, 1),
-  is_liked BOOLEAN NOT NULL DEFAULT FALSE,
-  logged_on DATE NOT NULL DEFAULT (timezone('utc', now()))::date,
-  review TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
+  is_liked BOOLEAN DEFAULT FALSE,
+  is_rewatch BOOLEAN DEFAULT FALSE,
+  review_text TEXT,
+  watched_on DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS diary_entries_user_logged_idx
-  ON public.diary_entries (user_id, logged_on DESC);
+CREATE INDEX IF NOT EXISTS diary_entries_user_watched_idx
+  ON public.diary_entries (user_id, watched_on DESC);
+
+-- Ensure rewatch column exists + refresh PostgREST schema cache
+ALTER TABLE public.diary_entries
+  ADD COLUMN IF NOT EXISTS is_rewatch BOOLEAN DEFAULT FALSE;
+
+NOTIFY pgrst, 'reload schema';
 
 ALTER TABLE public.diary_entries ENABLE ROW LEVEL SECURITY;
 
@@ -28,19 +35,19 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Users can insert own diary entries"
+  CREATE POLICY "Users can insert their own diary entries"
     ON public.diary_entries FOR INSERT WITH CHECK (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Users can update own diary entries"
+  CREATE POLICY "Users can update their own diary entries"
     ON public.diary_entries FOR UPDATE USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Users can delete own diary entries"
+  CREATE POLICY "Users can delete their own diary entries"
     ON public.diary_entries FOR DELETE USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;

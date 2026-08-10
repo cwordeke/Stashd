@@ -40,12 +40,13 @@ interface DiaryRow {
   media_id: string;
   media_type: string;
   title: string | null;
-  creator: string | null;
+  creator?: string | null;
   image_url: string | null;
   release_year: string | null;
   rating: number | string | null;
   is_liked: boolean | null;
-  logged_on: string;
+  is_rewatch?: boolean | null;
+  watched_on: string;
 }
 
 interface StashMetaRow {
@@ -233,7 +234,7 @@ export async function getStashTabItems(
     supabase
       .from("diary_entries")
       .select(
-        "id, media_id, media_type, title, creator, image_url, release_year, rating, is_liked, logged_on"
+        "id, media_id, media_type, title, image_url, release_year, rating, is_liked, watched_on"
       )
       .eq("user_id", userId),
     supabase
@@ -351,10 +352,10 @@ export async function getStashTabItems(
       if (row.is_liked) existing.liked = true;
       if (existing.rating == null) existing.rating = asRating(row.rating);
       if (
-        row.logged_on &&
-        (!existing.addedAt || row.logged_on > existing.addedAt)
+        row.watched_on &&
+        (!existing.addedAt || row.watched_on > existing.addedAt)
       ) {
-        existing.addedAt = row.logged_on;
+        existing.addedAt = row.watched_on;
       }
     } else if (row.is_liked || asRating(row.rating) != null) {
       map.set(key, {
@@ -366,7 +367,7 @@ export async function getStashTabItems(
         thumbnail: row.image_url || null,
         rating: asRating(row.rating),
         liked: Boolean(row.is_liked),
-        addedAt: row.logged_on,
+        addedAt: row.watched_on,
       });
     }
   }
@@ -394,17 +395,41 @@ export async function getDiaryEntriesByUserId(
 ): Promise<DiaryEntry[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  // Prefer select without `creator` — that column is optional / often missing.
+  const primary = await supabase
     .from("diary_entries")
     .select(
-      "id, media_id, media_type, title, creator, image_url, release_year, rating, is_liked, logged_on"
+      "id, media_id, media_type, title, image_url, release_year, rating, is_liked, is_rewatch, watched_on, created_at"
     )
     .eq("user_id", userId)
-    .order("logged_on", { ascending: false });
+    .order("watched_on", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  let rows: DiaryRow[] = [];
 
-  const entries: DiaryEntry[] = (data as DiaryRow[])
+  if (primary.error) {
+    const fallback = await supabase
+      .from("diary_entries")
+      .select(
+        "id, media_id, media_type, title, image_url, release_year, rating, is_liked, watched_on"
+      )
+      .eq("user_id", userId)
+      .order("watched_on", { ascending: false });
+
+    if (fallback.error || !fallback.data) {
+      console.error(
+        "[getDiaryEntriesByUserId]",
+        fallback.error?.message ?? primary.error.message
+      );
+      return [];
+    }
+
+    rows = fallback.data as unknown as DiaryRow[];
+  } else {
+    rows = (primary.data ?? []) as unknown as DiaryRow[];
+  }
+
+  const entries: DiaryEntry[] = rows
     .filter((row) => isMediaType(row.media_type))
     .map((row) => ({
       id: row.id,
@@ -416,7 +441,8 @@ export async function getDiaryEntriesByUserId(
       thumbnail: row.image_url || null,
       rating: asRating(row.rating),
       liked: Boolean(row.is_liked),
-      loggedOn: row.logged_on,
+      isRewatch: Boolean(row.is_rewatch),
+      loggedOn: row.watched_on,
     }));
 
   const incomplete = entries.filter((e) =>

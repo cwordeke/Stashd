@@ -30,8 +30,6 @@ interface StashRow {
   created_at: string;
 }
 
-const TOP_N = 4;
-
 function isMediaType(value: string): value is MediaType {
   return (MEDIA_TYPES as string[]).includes(value);
 }
@@ -79,29 +77,6 @@ export async function getUserStash(): Promise<StashItem[]> {
   return getStashByUserId(user.id);
 }
 
-export async function isMediaInUserStash(
-  mediaId: string,
-  mediaType: MediaType
-): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return false;
-
-  const { data, error } = await supabase
-    .from("stash_items")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("media_id", mediaId)
-    .eq("media_type", mediaType)
-    .maybeSingle();
-
-  if (error) return false;
-  return Boolean(data?.id);
-}
-
 export async function getUserStashShelves(): Promise<StashShelves> {
   const items = await getUserStash();
   return shelvesFromItems(items);
@@ -128,79 +103,6 @@ async function revalidateStashPaths(userId: string) {
   if (data?.username) {
     revalidatePath(`/u/${data.username}`);
   }
-}
-
-export async function addStashItem(
-  item: UnifiedMediaItem
-): Promise<StashActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false, message: "Sign in to add items to your stash" };
-  }
-
-  if (!isMediaType(item.mediaType)) {
-    return { ok: false, message: "Invalid media type" };
-  }
-
-  const { count, error: countError } = await supabase
-    .from("stash_items")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("media_type", item.mediaType);
-
-  if (countError) {
-    return { ok: false, message: countError.message };
-  }
-
-  if ((count ?? 0) >= TOP_N) {
-    return {
-      ok: false,
-      message: "This category is already full! Remove an item first.",
-    };
-  }
-
-  const { data: existing } = await supabase
-    .from("stash_items")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("media_type", item.mediaType)
-    .eq("media_id", item.id)
-    .maybeSingle();
-
-  if (existing) {
-    return { ok: false, message: "Already in your Top 4" };
-  }
-
-  const { data, error } = await supabase
-    .from("stash_items")
-    .insert({
-      user_id: user.id,
-      media_id: item.id,
-      media_type: item.mediaType,
-      title: item.title,
-      creator: item.creator,
-      image_url: item.thumbnail,
-      release_year: item.year,
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
-
-  const stashItem = rowToStashItem(data as StashRow);
-  await revalidateStashPaths(user.id);
-
-  return {
-    ok: true,
-    item: stashItem ?? undefined,
-    message: "Added to your stash",
-  };
 }
 
 export async function removeStashItem(
