@@ -6,6 +6,7 @@ import {
   getStashTabItems,
   getWatchlistByUserId,
 } from "@/app/actions/profile-media";
+import { getUserRatingStats } from "@/app/actions/ratings";
 import { getStashShelvesByUserId } from "@/app/actions/stash";
 import { getProfileByUsername } from "@/lib/profile";
 import { parseProfileTab } from "@/lib/profile-tabs";
@@ -30,6 +31,20 @@ export async function generateMetadata({ params }: PublicProfilePageProps) {
   };
 }
 
+function buildSocialStats(diaryLoggedOn: string[]) {
+  const year = new Date().getFullYear();
+  const yearPrefix = `${year}-`;
+
+  return {
+    totalLogs: diaryLoggedOn.length,
+    logsThisYear: diaryLoggedOn.filter((date) => date.startsWith(yearPrefix))
+      .length,
+    // Placeholders until follow graph exists
+    followers: 0,
+    following: 0,
+  };
+}
+
 export default async function PublicProfilePage({
   params,
   searchParams,
@@ -47,16 +62,18 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  const [shelves, stashItems, diaryEntries, watchlistItems, auth] =
+  const [shelves, stashItems, diaryEntries, watchlistItems, ratingStats, auth] =
     await Promise.all([
       getStashShelvesByUserId(profile.id),
       getStashTabItems(profile.id),
       getDiaryEntriesByUserId(profile.id),
       getWatchlistByUserId(profile.id),
+      getUserRatingStats(profile.id),
       supabase.auth.getUser(),
     ]);
 
   const isOwner = auth.data.user?.id === profile.id;
+  const socialStats = buildSocialStats(diaryEntries.map((e) => e.loggedOn));
 
   return (
     <Suspense
@@ -74,6 +91,8 @@ export default async function PublicProfilePage({
         stashItems={stashItems}
         diaryEntries={diaryEntries}
         watchlistItems={watchlistItems}
+        ratingStats={ratingStats}
+        socialStats={socialStats}
         isOwner={isOwner}
         initialTab={initialTab}
       />

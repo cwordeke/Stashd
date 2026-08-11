@@ -10,18 +10,22 @@ interface ProfileBioProps {
   initialBio: string | null;
   isOwner: boolean;
   username: string;
+  /** Left-aligned sidebar style (Backloggd-inspired) */
+  variant?: "default" | "sidebar";
 }
 
 export default function ProfileBio({
   initialBio,
   isOwner,
   username,
+  variant = "default",
 }: ProfileBioProps) {
   const [bio, setBio] = useState(initialBio ?? "");
   const [draft, setDraft] = useState(initialBio ?? "");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sidebar = variant === "sidebar";
 
   useEffect(() => {
     setBio(initialBio ?? "");
@@ -68,18 +72,9 @@ export default function ProfileBio({
     setEditing(false);
   }
 
-  if (!isOwner) {
-    if (!bio.trim()) return null;
-    return (
-      <p className="mx-auto max-w-md text-center text-sm leading-relaxed text-zinc-400">
-        {bio}
-      </p>
-    );
-  }
-
   if (editing) {
     return (
-      <div className="mx-auto w-full max-w-md space-y-2">
+      <div className={cn("w-full space-y-2", !sidebar && "mx-auto max-w-md")}>
         <textarea
           ref={textareaRef}
           value={draft}
@@ -96,7 +91,10 @@ export default function ProfileBio({
           }}
           rows={3}
           placeholder="Tell people a bit about yourself…"
-          className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-900/80 px-3 py-2.5 text-center text-sm leading-relaxed text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-emerald-600/60"
+          className={cn(
+            "w-full resize-none rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2.5 text-sm leading-relaxed text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-emerald-600/60",
+            !sidebar && "text-center"
+          )}
           disabled={saving}
         />
         <div className="flex items-center justify-between gap-2">
@@ -126,19 +124,39 @@ export default function ProfileBio({
     );
   }
 
+  if (!isOwner) {
+    if (!bio.trim()) {
+      return sidebar ? (
+        <p className="text-sm text-zinc-600">Nothing here!</p>
+      ) : null;
+    }
+    return (
+      <p
+        className={cn(
+          "text-sm leading-relaxed text-zinc-400",
+          !sidebar && "mx-auto max-w-md text-center"
+        )}
+      >
+        {bio}
+      </p>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={() => setEditing(true)}
       className={cn(
-        "mx-auto block max-w-md rounded-xl px-3 py-2 text-center text-sm leading-relaxed transition",
+        "block w-full rounded-lg px-0 py-1 text-sm leading-relaxed transition",
+        sidebar ? "text-left" : "mx-auto max-w-md px-3 py-2 text-center",
         bio.trim()
-          ? "text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-300"
-          : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-400"
+          ? "text-zinc-400 hover:text-zinc-300"
+          : "text-zinc-600 hover:text-zinc-400"
       )}
       title="Edit bio"
     >
-      {bio.trim() || `Add a bio for ${username}…`}
+      {bio.trim() ||
+        (sidebar ? "Nothing here!" : `Add a bio for ${username}…`)}
     </button>
   );
 }

@@ -12,9 +12,15 @@ import { usePathname } from "next/navigation";
 import ProfileBio from "@/components/ProfileBio";
 import ProfileDiaryTab from "@/components/ProfileDiaryTab";
 import ProfileListsTab from "@/components/ProfileListsTab";
+import ProfileSettings from "@/components/ProfileSettings";
 import ProfileStashTab from "@/components/ProfileStashTab";
+import ProfileStats, {
+  type ProfileSocialStats,
+} from "@/components/ProfileStats";
 import ProfileWatchlistTab from "@/components/ProfileWatchlistTab";
+import RatingDistribution from "@/components/RatingDistribution";
 import Top4Shelf from "@/components/Top4Shelf";
+import type { UserRatingStats } from "@/lib/ratings";
 import { useStash } from "@/context/StashContext";
 import { cn } from "@/lib/cn";
 import {
@@ -38,6 +44,8 @@ interface PublicProfileViewProps {
   stashItems: StashTabItem[];
   diaryEntries: DiaryEntry[];
   watchlistItems: WatchlistItem[];
+  ratingStats: UserRatingStats;
+  socialStats: ProfileSocialStats;
   isOwner: boolean;
   initialTab?: ProfileTab;
 }
@@ -50,6 +58,8 @@ export default function PublicProfileView({
   stashItems,
   diaryEntries,
   watchlistItems,
+  ratingStats,
+  socialStats,
   isOwner,
   initialTab = "top4",
 }: PublicProfileViewProps) {
@@ -99,12 +109,10 @@ export default function PublicProfileView({
     };
   }, [updateIndicator]);
 
-  // Keep local tab in sync if server sends a new initialTab (rare)
   useEffect(() => {
     setTab(initialTab);
   }, [initialTab]);
 
-  // Browser back/forward
   useEffect(() => {
     function onPopState() {
       const params = new URLSearchParams(window.location.search);
@@ -122,86 +130,118 @@ export default function PublicProfileView({
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="flex flex-col items-center text-center">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
+      {/* Identity — left-aligned, circular avatar */}
+      <header className="flex items-start gap-4 sm:gap-5">
         {avatarUrl ? (
           <Image
             src={avatarUrl}
             alt={`${username}'s avatar`}
-            width={96}
-            height={96}
-            className="rounded-full border border-zinc-700 shadow-lg shadow-black/40"
+            width={88}
+            height={88}
+            className="h-[72px] w-[72px] shrink-0 rounded-full border border-zinc-700 object-cover sm:h-[88px] sm:w-[88px]"
             priority
           />
         ) : (
-          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-600 text-3xl font-semibold text-white shadow-lg shadow-black/40">
+          <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-emerald-600 text-2xl font-semibold text-white sm:h-[88px] sm:w-[88px] sm:text-3xl">
             {username.charAt(0).toUpperCase()}
           </span>
         )}
 
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          {username}
-        </h1>
-
-        <div className="mt-3 w-full">
-          <ProfileBio
-            initialBio={bio}
-            isOwner={isOwner}
-            username={username}
-          />
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                {username}
+              </h1>
+              <p className="mt-0.5 text-sm text-zinc-500">@{username}</p>
+            </div>
+            {isOwner ? (
+              <ProfileSettings username={username} className="shrink-0" />
+            ) : null}
+          </div>
         </div>
       </header>
 
-      <div className="space-y-8">
-        <nav className="flex justify-center" aria-label="Profile sections">
-          <ul
-            ref={listRef}
-            className="relative flex w-full max-w-xl items-end justify-between gap-1 border-b border-zinc-800/90 sm:justify-center sm:gap-8"
-          >
-            {PROFILE_TABS.map((id) => {
-              const active = tab === id;
+      {/* Tabs — centered under header */}
+      <nav className="flex justify-center" aria-label="Profile sections">
+        <ul
+          ref={listRef}
+          className="relative flex w-full max-w-xl items-end justify-between gap-1 border-b border-zinc-800/90 sm:justify-center sm:gap-8"
+        >
+          {PROFILE_TABS.map((id) => {
+            const active = tab === id;
 
-              return (
-                <li key={id} className="min-w-0 flex-1 sm:flex-none">
-                  <button
-                    type="button"
-                    ref={(el) => {
-                      if (el) tabRefs.current.set(id, el);
-                      else tabRefs.current.delete(id);
-                    }}
-                    onClick={() => selectTab(id)}
-                    className={cn(
-                      "relative flex w-full cursor-pointer justify-center px-1 pb-3 pt-1 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors duration-300 sm:px-2 sm:text-xs",
-                      active
-                        ? "text-white"
-                        : "text-zinc-500 hover:text-zinc-300"
-                    )}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    <span className="truncate">{PROFILE_TAB_LABELS[id]}</span>
-                  </button>
-                </li>
-              );
-            })}
+            return (
+              <li key={id} className="min-w-0 flex-1 sm:flex-none">
+                <button
+                  type="button"
+                  ref={(el) => {
+                    if (el) tabRefs.current.set(id, el);
+                    else tabRefs.current.delete(id);
+                  }}
+                  onClick={() => selectTab(id)}
+                  className={cn(
+                    "relative flex w-full cursor-pointer justify-center px-1 pb-3 pt-1 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors duration-300 sm:px-2 sm:text-xs",
+                    active
+                      ? "text-white"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <span className="truncate">{PROFILE_TAB_LABELS[id]}</span>
+                </button>
+              </li>
+            );
+          })}
 
-            <span
-              className={cn(
-                "pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-emerald-500",
-                "shadow-[0_0_12px_rgba(16,185,129,0.55)]",
-                indicator.ready
-                  ? "opacity-100 transition-[left,width,opacity] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-                  : "opacity-0"
-              )}
-              style={{
-                left: indicator.left,
-                width: indicator.width,
-              }}
-              aria-hidden
-            />
-          </ul>
-        </nav>
+          <span
+            className={cn(
+              "pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-emerald-500",
+              "shadow-[0_0_12px_rgba(16,185,129,0.55)]",
+              indicator.ready
+                ? "opacity-100 transition-[left,width,opacity] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                : "opacity-0"
+            )}
+            style={{
+              left: indicator.left,
+              width: indicator.width,
+            }}
+            aria-hidden
+          />
+        </ul>
+      </nav>
 
-        <div>
+      {/* Body: sidebar + main */}
+      <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+        <aside className="space-y-6 lg:border-r lg:border-zinc-800/80 lg:pr-6">
+          <section>
+            <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+              Bio
+            </h2>
+            <div className="mt-2">
+              <ProfileBio
+                initialBio={bio}
+                isOwner={isOwner}
+                username={username}
+                variant="sidebar"
+              />
+            </div>
+          </section>
+
+          <ProfileStats social={socialStats} />
+
+          <section>
+            <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+              Personal ratings
+            </h2>
+            <div className="mt-3">
+              <RatingDistribution stats={ratingStats} />
+            </div>
+          </section>
+        </aside>
+
+        <div className="min-w-0">
           {tab === "top4" ? (
             <section className="space-y-8">
               <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
@@ -214,7 +254,7 @@ export default function PublicProfileView({
                   />
                 ))}
               </div>
-              <div className="mx-auto w-full md:max-w-[calc(50%-1rem)]">
+              <div className="mx-auto w-full md:mx-0 md:max-w-[calc(50%-1rem)]">
                 <Top4Shelf
                   type="music"
                   items={displayShelves.music}
