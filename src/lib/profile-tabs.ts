@@ -53,6 +53,46 @@ export interface WatchlistItem extends UnifiedMediaItem {
   addedAt: string | null;
 }
 
+export interface ListSummary {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  isRanked: boolean;
+  isPublic: boolean;
+  itemCount: number;
+  previewThumbnails: (string | null)[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListItem {
+  id: string;
+  mediaId: string;
+  mediaType: MediaType;
+  title: string;
+  creator: string;
+  year: string;
+  thumbnail: string | null;
+  notes: string;
+  position: number;
+  rating: number | null;
+}
+
+export interface MediaList {
+  id: string;
+  userId: string;
+  username: string;
+  name: string;
+  description: string;
+  tags: string[];
+  isRanked: boolean;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  items: ListItem[];
+}
+
 export type MediaMetaInput = Pick<
   UnifiedMediaItem,
   "title" | "creator" | "year" | "thumbnail"

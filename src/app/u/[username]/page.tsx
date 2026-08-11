@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import PublicProfileView from "@/components/PublicProfileView";
+import { getListsByUserId } from "@/app/actions/lists";
 import {
   getDiaryEntriesByUserId,
   getStashTabItems,
@@ -62,17 +63,20 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  const [shelves, stashItems, diaryEntries, watchlistItems, ratingStats, auth] =
+  const auth = await supabase.auth.getUser();
+  const viewerId = auth.data.user?.id ?? null;
+  const isOwner = viewerId === profile.id;
+
+  const [shelves, stashItems, diaryEntries, watchlistItems, lists, ratingStats] =
     await Promise.all([
       getStashShelvesByUserId(profile.id),
       getStashTabItems(profile.id),
       getDiaryEntriesByUserId(profile.id),
       getWatchlistByUserId(profile.id),
+      getListsByUserId(profile.id, viewerId),
       getUserRatingStats(profile.id),
-      supabase.auth.getUser(),
     ]);
 
-  const isOwner = auth.data.user?.id === profile.id;
   const socialStats = buildSocialStats(diaryEntries.map((e) => e.loggedOn));
 
   return (
@@ -91,6 +95,7 @@ export default async function PublicProfilePage({
         stashItems={stashItems}
         diaryEntries={diaryEntries}
         watchlistItems={watchlistItems}
+        lists={lists}
         ratingStats={ratingStats}
         socialStats={socialStats}
         isOwner={isOwner}

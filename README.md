@@ -28,6 +28,10 @@ Fill API keys in `.env.local` (see `.env.example`). Open Library needs no key. W
 | `/login` | Google OAuth sign-in |
 | `/onboarding` | Claim a unique username |
 | `/u/[username]` | Public Top 4 stash |
+| `/u/[username]?tab=lists` | Custom lists index |
+| `/u/[username]/lists/new` | Create a list (owner) |
+| `/u/[username]/lists/[listId]` | View a list |
+| `/u/[username]/lists/[listId]/edit` | Edit a list (owner) |
 | `/media/[mediaType]/[id]` | Rating + media preview |
 | `/profile` | Redirects to `/u/[username]` |
 

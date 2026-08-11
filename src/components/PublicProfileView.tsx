@@ -28,6 +28,7 @@ import {
   PROFILE_TABS,
   parseProfileTab,
   type DiaryEntry,
+  type ListSummary,
   type ProfileTab,
   type StashTabItem,
   type WatchlistItem,
@@ -44,6 +45,7 @@ interface PublicProfileViewProps {
   stashItems: StashTabItem[];
   diaryEntries: DiaryEntry[];
   watchlistItems: WatchlistItem[];
+  lists: ListSummary[];
   ratingStats: UserRatingStats;
   socialStats: ProfileSocialStats;
   isOwner: boolean;
@@ -58,6 +60,7 @@ export default function PublicProfileView({
   stashItems,
   diaryEntries,
   watchlistItems,
+  lists,
   ratingStats,
   socialStats,
   isOwner,
@@ -271,7 +274,13 @@ export default function PublicProfileView({
           {tab === "watchlist" ? (
             <ProfileWatchlistTab items={watchlistItems} />
           ) : null}
-          {tab === "lists" ? <ProfileListsTab /> : null}
+          {tab === "lists" ? (
+            <ProfileListsTab
+              username={username}
+              lists={lists}
+              isOwner={isOwner}
+            />
+          ) : null}
         </div>
       </div>
     </div>
