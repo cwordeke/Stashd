@@ -9,10 +9,10 @@ import {
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
+import { ProfileIdentityHeader } from "@/components/FollowButton";
 import ProfileBio from "@/components/ProfileBio";
 import ProfileDiaryTab from "@/components/ProfileDiaryTab";
 import ProfileListsTab from "@/components/ProfileListsTab";
-import ProfileSettings from "@/components/ProfileSettings";
 import ProfileStashTab from "@/components/ProfileStashTab";
 import ProfileStats, {
   type ProfileSocialStats,
@@ -49,6 +49,9 @@ interface PublicProfileViewProps {
   ratingStats: UserRatingStats;
   socialStats: ProfileSocialStats;
   isOwner: boolean;
+  isLoggedIn: boolean;
+  profileUserId: string;
+  initialIsFollowing: boolean;
   initialTab?: ProfileTab;
 }
 
@@ -64,6 +67,9 @@ export default function PublicProfileView({
   ratingStats,
   socialStats,
   isOwner,
+  isLoggedIn,
+  profileUserId,
+  initialIsFollowing,
   initialTab = "top4",
 }: PublicProfileViewProps) {
   const pathname = usePathname();
@@ -151,19 +157,16 @@ export default function PublicProfileView({
           </span>
         )}
 
-        <div className="min-w-0 flex-1 pt-0.5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                {username}
-              </h1>
-              <p className="mt-0.5 text-sm text-zinc-500">@{username}</p>
-            </div>
-            {isOwner ? (
-              <ProfileSettings username={username} className="shrink-0" />
-            ) : null}
-          </div>
-        </div>
+        <ProfileIdentityHeader
+          username={username}
+          profileUserId={profileUserId}
+          isOwner={isOwner}
+          isLoggedIn={isLoggedIn}
+          initialIsFollowing={initialIsFollowing}
+          followers={socialStats.followers}
+          following={socialStats.following}
+          ratingStats={ratingStats}
+        />
       </header>
 
       {/* Tabs — centered under header */}

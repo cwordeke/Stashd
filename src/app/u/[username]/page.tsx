@@ -8,6 +8,10 @@ import {
   getWatchlistByUserId,
 } from "@/app/actions/profile-media";
 import { getUserRatingStats } from "@/app/actions/ratings";
+import {
+  checkIfFollowing,
+  getProfileFollowStats,
+} from "@/app/actions/social";
 import { getStashShelvesByUserId } from "@/app/actions/stash";
 import { getProfileByUsername } from "@/lib/profile";
 import { parseProfileTab } from "@/lib/profile-tabs";
@@ -32,7 +36,10 @@ export async function generateMetadata({ params }: PublicProfilePageProps) {
   };
 }
 
-function buildSocialStats(diaryLoggedOn: string[]) {
+function buildSocialStats(
+  diaryLoggedOn: string[],
+  followStats: { followers: number; following: number }
+) {
   const year = new Date().getFullYear();
   const yearPrefix = `${year}-`;
 
@@ -40,9 +47,8 @@ function buildSocialStats(diaryLoggedOn: string[]) {
     totalLogs: diaryLoggedOn.length,
     logsThisYear: diaryLoggedOn.filter((date) => date.startsWith(yearPrefix))
       .length,
-    // Placeholders until follow graph exists
-    followers: 0,
-    following: 0,
+    followers: followStats.followers,
+    following: followStats.following,
   };
 }
 
@@ -67,17 +73,30 @@ export default async function PublicProfilePage({
   const viewerId = auth.data.user?.id ?? null;
   const isOwner = viewerId === profile.id;
 
-  const [shelves, stashItems, diaryEntries, watchlistItems, lists, ratingStats] =
-    await Promise.all([
-      getStashShelvesByUserId(profile.id),
-      getStashTabItems(profile.id),
-      getDiaryEntriesByUserId(profile.id),
-      getWatchlistByUserId(profile.id),
-      getListsByUserId(profile.id, viewerId),
-      getUserRatingStats(profile.id),
-    ]);
+  const [
+    shelves,
+    stashItems,
+    diaryEntries,
+    watchlistItems,
+    lists,
+    ratingStats,
+    followStats,
+    isFollowing,
+  ] = await Promise.all([
+    getStashShelvesByUserId(profile.id),
+    getStashTabItems(profile.id),
+    getDiaryEntriesByUserId(profile.id),
+    getWatchlistByUserId(profile.id),
+    getListsByUserId(profile.id, viewerId),
+    getUserRatingStats(profile.id),
+    getProfileFollowStats(profile.id),
+    viewerId && !isOwner ? checkIfFollowing(profile.id) : Promise.resolve(false),
+  ]);
 
-  const socialStats = buildSocialStats(diaryEntries.map((e) => e.loggedOn));
+  const socialStats = buildSocialStats(
+    diaryEntries.map((e) => e.loggedOn),
+    followStats
+  );
 
   return (
     <Suspense
@@ -99,6 +118,9 @@ export default async function PublicProfilePage({
         ratingStats={ratingStats}
         socialStats={socialStats}
         isOwner={isOwner}
+        isLoggedIn={Boolean(viewerId)}
+        profileUserId={profile.id}
+        initialIsFollowing={isFollowing}
         initialTab={initialTab}
       />
     </Suspense>

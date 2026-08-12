@@ -3,9 +3,7 @@ import { cn } from "@/lib/cn";
 export interface ProfileSocialStats {
   totalLogs: number;
   logsThisYear: number;
-  /** Placeholder until follows are implemented */
   followers: number;
-  /** Placeholder until follows are implemented */
   following: number;
 }
 

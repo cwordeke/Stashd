@@ -8,7 +8,7 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { profilePath, type AuthUserSummary } from "@/lib/auth";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
-import SearchBar from "@/components/SearchBar";
+import SearchModal from "@/components/SearchModal";
 import { createClient } from "@/utils/supabase/client";
 
 interface NavbarProps {
@@ -69,7 +69,7 @@ export default function Navbar({ user }: NavbarProps) {
         </nav>
 
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:max-w-none md:flex-none">
-          <SearchBar />
+          <SearchModal />
 
           {user ? (
             <>
