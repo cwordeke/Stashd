@@ -1,4 +1,5 @@
 import { tmdbPoster, yearFromDate } from "@/lib/media";
+import { getMediaDetails } from "@/lib/providers/details";
 import type { UnifiedMediaItem } from "@/lib/types";
 
 interface TmdbListItem {
@@ -14,6 +15,22 @@ interface TmdbListResponse {
   results?: TmdbListItem[];
 }
 
+/** Same creator string the detail page shows (“Directed by …”). */
+async function withDetailCreators(
+  items: UnifiedMediaItem[]
+): Promise<UnifiedMediaItem[]> {
+  return Promise.all(
+    items.map(async (item) => {
+      try {
+        const details = await getMediaDetails(item.mediaType, item.id);
+        return { ...item, creator: details.creator };
+      } catch {
+        return item;
+      }
+    })
+  );
+}
+
 export async function getTrendingMovies(): Promise<UnifiedMediaItem[]> {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
@@ -25,7 +42,7 @@ export async function getTrendingMovies(): Promise<UnifiedMediaItem[]> {
   if (!res.ok) throw new Error(`TMDB trending movies failed: ${res.status}`);
 
   const data = (await res.json()) as TmdbListResponse;
-  return (data.results ?? []).slice(0, 20).map((item) => ({
+  const items = (data.results ?? []).slice(0, 20).map((item) => ({
     id: String(item.id),
     title: item.title ?? "Untitled",
     creator: "—",
@@ -33,6 +50,8 @@ export async function getTrendingMovies(): Promise<UnifiedMediaItem[]> {
     thumbnail: tmdbPoster(item.poster_path),
     mediaType: "movie" as const,
   }));
+
+  return withDetailCreators(items);
 }
 
 export async function getTrendingTv(): Promise<UnifiedMediaItem[]> {
@@ -46,7 +65,7 @@ export async function getTrendingTv(): Promise<UnifiedMediaItem[]> {
   if (!res.ok) throw new Error(`TMDB trending TV failed: ${res.status}`);
 
   const data = (await res.json()) as TmdbListResponse;
-  return (data.results ?? []).slice(0, 20).map((item) => ({
+  const items = (data.results ?? []).slice(0, 20).map((item) => ({
     id: String(item.id),
     title: item.name ?? "Untitled",
     creator: "—",
@@ -54,6 +73,8 @@ export async function getTrendingTv(): Promise<UnifiedMediaItem[]> {
     thumbnail: tmdbPoster(item.poster_path),
     mediaType: "tv" as const,
   }));
+
+  return withDetailCreators(items);
 }
 
 export async function getPopularMovies(): Promise<UnifiedMediaItem[]> {
@@ -114,5 +135,10 @@ export async function searchTmdb(query: string) {
     }
   }
 
-  return { movies, tv };
+  const [enrichedMovies, enrichedTv] = await Promise.all([
+    withDetailCreators(movies),
+    withDetailCreators(tv),
+  ]);
+
+  return { movies: enrichedMovies, tv: enrichedTv };
 }
