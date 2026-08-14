@@ -64,7 +64,7 @@ export default function ListDetailView({ list, isOwner }: ListDetailViewProps) {
             {isOwner ? (
               <Link
                 href={`/u/${list.username}/lists/${list.id}/edit`}
-                className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-emerald-500/50 hover:text-emerald-300"
+                className="rounded-md border border-white/10 px-3 py-2 text-[13px] font-medium text-zinc-200 transition-colors hover:bg-white/[0.05]"
               >
                 Edit list
               </Link>
@@ -123,7 +123,7 @@ export default function ListDetailView({ list, isOwner }: ListDetailViewProps) {
       </div>
 
       {!list.items.length ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-zinc-800 px-6 py-14 text-center text-sm text-zinc-500">
+        <div className="mt-8 border border-dashed border-white/10 px-6 py-14 text-center text-sm text-zinc-500">
           This list is empty.
         </div>
       ) : view === "grid" ? (
@@ -163,7 +163,7 @@ export default function ListDetailView({ list, isOwner }: ListDetailViewProps) {
           ))}
         </ul>
       ) : (
-        <ul className="mt-6 divide-y divide-zinc-800 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30">
+        <ul className="mt-6 divide-y divide-white/[0.06] overflow-hidden border border-white/10">
           {list.items.map((item, index) => (
             <li key={item.id}>
               <Link

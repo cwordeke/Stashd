@@ -363,10 +363,10 @@ function SearchTabButton({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "flex-1 rounded-md px-2.5 py-1.5 text-xs font-medium uppercase tracking-[0.12em] transition",
+        "flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
         active
-          ? "bg-zinc-800 text-white"
-          : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
+          ? "bg-white/[0.08] text-white"
+          : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300"
       )}
     >
       {children}

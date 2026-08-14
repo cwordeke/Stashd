@@ -29,11 +29,11 @@ export default function OnboardingPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12 sm:px-6">
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-2xl shadow-black/40">
+      <div className="border border-white/10 bg-zinc-900/50 p-8">
         <div className="mb-8 space-y-2 text-center">
           <Link
             href="/"
-            className="text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+            className="text-[17px] font-bold tracking-[-0.035em] text-white"
           >
             Stashd
           </Link>
@@ -51,7 +51,7 @@ export default function OnboardingPage() {
             <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               Username
             </span>
-            <div className="flex overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/30">
+            <div className="flex overflow-hidden rounded-md border border-white/[0.08] bg-white/[0.04] focus-within:border-white/[0.18]">
               <span className="flex items-center border-r border-zinc-800 px-3 text-sm text-zinc-500">
                 /u/
               </span>
@@ -79,7 +79,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={isPending || username.trim().length < 3}
-            className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-md bg-emerald-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Claiming…" : "Claim username"}
           </button>

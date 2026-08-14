@@ -33,11 +33,11 @@ function LoginForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-2xl shadow-black/40">
+    <div className="border border-white/10 bg-zinc-900/50 p-8">
       <div className="mb-8 space-y-2 text-center">
         <Link
           href="/"
-          className="text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+          className="text-[17px] font-bold tracking-[-0.035em] text-white"
         >
           Stashd
         </Link>
@@ -53,7 +53,7 @@ function LoginForm() {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-4 py-2.5 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <GoogleIcon />
         {loading ? "Redirecting…" : "Continue with Google"}
@@ -75,7 +75,7 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12 sm:px-6">
       <Suspense
         fallback={
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 text-center text-sm text-zinc-400">
+          <div className="border border-white/10 bg-zinc-900/50 p-8 text-center text-sm text-zinc-400">
             Loading…
           </div>
         }

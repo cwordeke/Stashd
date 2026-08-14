@@ -141,10 +141,10 @@ function StatusButton({
       aria-label={ariaLabel ?? label}
       title={label}
       className={cn(
-        "flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 text-[10px] font-medium transition",
+        "flex flex-col items-center gap-1 rounded-md border px-1.5 py-2 text-[10px] font-medium transition-colors",
         active
-          ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
-          : "border-zinc-700 bg-zinc-900/80 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+          : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:text-zinc-200"
       )}
     >
       <span

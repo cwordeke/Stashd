@@ -153,7 +153,7 @@ export default function LogMediaModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-zinc-700/80 bg-zinc-950 shadow-2xl shadow-black/50"
+        className="relative z-10 w-full max-w-md overflow-hidden border border-white/10 bg-zinc-950"
       >
         <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
           <div className="flex items-start gap-3">
@@ -198,11 +198,11 @@ export default function LogMediaModal({
               required
               value={loggedOn}
               onChange={(e) => setLoggedOn(e.target.value)}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-emerald-600/60"
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors focus:border-white/[0.18]"
             />
           </label>
 
-          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-3">
+          <label className="flex cursor-pointer items-center justify-between gap-3 border border-white/10 bg-white/[0.03] px-3 py-3">
             <span className="text-sm text-zinc-300">{labels.rewatch}</span>
             <input
               type="checkbox"
@@ -270,10 +270,10 @@ export default function LogMediaModal({
             type="button"
             onClick={() => setLiked((v) => !v)}
             className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition",
+              "flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2.5 text-[13px] font-medium transition-colors",
               liked
                 ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                : "border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:text-zinc-200"
             )}
             aria-pressed={liked}
           >
@@ -290,7 +290,7 @@ export default function LogMediaModal({
               onChange={(e) => setReview(e.target.value)}
               rows={4}
               placeholder="What did you think?"
-              className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm leading-relaxed text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-emerald-600/60"
+              className="w-full resize-none rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-white/[0.18]"
             />
           </label>
 
@@ -299,14 +299,14 @@ export default function LogMediaModal({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="flex-1 rounded-xl border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-900 disabled:opacity-60"
+              className="flex-1 rounded-md border border-white/10 px-4 py-2.5 text-[13px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.05] disabled:opacity-60"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+              className="flex-1 rounded-md bg-emerald-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-60"
             >
               {isPending ? "Saving…" : "Save Log"}
             </button>

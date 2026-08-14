@@ -3,7 +3,7 @@ import { MEDIA_TYPE_LABELS, MEDIA_TYPES, type MediaType } from "@/lib/types";
 
 export function MediaCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/80">
+    <div className="overflow-hidden rounded-md border border-white/10 bg-zinc-900/80">
       <div className="aspect-[2/3] animate-pulse bg-zinc-800" />
       <div className="space-y-2 p-3">
         <div className="h-3 w-[80%] animate-pulse rounded bg-zinc-800" />
@@ -38,7 +38,7 @@ export function CategoryPageSkeleton({
       <header className="mb-8 space-y-2">
         {meta ? (
           <>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-500/80">
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
               {meta.title}
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-white">
@@ -69,7 +69,7 @@ export function HomePageSkeleton() {
           {MEDIA_TYPES.map((type) => (
             <div
               key={type}
-              className="h-7 w-16 animate-pulse rounded-full bg-zinc-800"
+              className="h-7 w-16 animate-pulse rounded-md bg-zinc-800"
             />
           ))}
         </div>
@@ -77,7 +77,7 @@ export function HomePageSkeleton() {
 
       <section className="space-y-4">
         <div className="h-6 w-40 animate-pulse rounded bg-zinc-800" />
-        <div className="h-40 animate-pulse rounded-2xl border border-zinc-800 bg-zinc-900/40" />
+        <div className="h-40 animate-pulse border border-white/10 bg-zinc-900/40" />
       </section>
 
       <section className="space-y-4">

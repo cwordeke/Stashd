@@ -43,7 +43,7 @@ export default function ProfileListsTab({
 
   if (!lists.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
+      <div className="border border-dashed border-white/10 px-6 py-16 text-center">
         <p className="text-sm font-medium text-zinc-200">No custom lists yet</p>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
           Create themed lists for festivals, genres, rankings, or anything you
@@ -52,7 +52,7 @@ export default function ProfileListsTab({
         {isOwner ? (
           <Link
             href={`/u/${username}/lists/new`}
-            className="mt-6 inline-flex rounded-xl border border-emerald-600/40 bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+            className="mt-6 inline-flex rounded-md bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500"
           >
             Create a Custom List
           </Link>
@@ -87,7 +87,7 @@ export default function ProfileListsTab({
                 onChange={(e) =>
                   setFilter(e.target.value as VisibilityFilter)
                 }
-                className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-emerald-500"
+                className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-white/[0.18]"
               >
                 <option value="all">Show all</option>
                 <option value="public">Public</option>
@@ -100,7 +100,7 @@ export default function ProfileListsTab({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-emerald-500"
+              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-white/[0.18]"
             >
               <option value="updated">Sort by when updated</option>
               <option value="name">Sort by name</option>

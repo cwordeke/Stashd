@@ -87,7 +87,7 @@ export default function StarRating({
   return (
     <div
       className={cn(
-        !compact && "rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4"
+        !compact && "border border-white/10 bg-zinc-900/50 p-4"
       )}
     >
       {!compact ? (

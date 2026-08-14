@@ -12,7 +12,7 @@ export default function MediaGrid({
 }: MediaGridProps) {
   if (!items.length) {
     return (
-      <p className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-10 text-center text-sm text-zinc-500">
+      <p className="rounded-md border border-white/[0.06] px-4 py-10 text-center text-sm text-zinc-500">
         {emptyMessage}
       </p>
     );

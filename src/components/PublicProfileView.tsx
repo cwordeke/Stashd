@@ -203,8 +203,7 @@ export default function PublicProfileView({
 
           <span
             className={cn(
-              "pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-emerald-500",
-              "shadow-[0_0_12px_rgba(16,185,129,0.55)]",
+              "pointer-events-none absolute bottom-0 h-0.5 bg-emerald-500",
               indicator.ready
                 ? "opacity-100 transition-[left,width,opacity] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
                 : "opacity-0"

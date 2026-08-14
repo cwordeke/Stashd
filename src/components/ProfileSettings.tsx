@@ -67,96 +67,39 @@ export default function ProfileSettings({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-haspopup="dialog"
+        aria-haspopup="menu"
+        aria-label={`Settings for @${username}`}
         title="Settings"
         className={cn(
-          "group relative inline-flex h-10 w-10 items-center justify-center rounded-full",
-          "border border-zinc-700/70 bg-zinc-950/70 text-zinc-400",
-          "shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset,0_8px_24px_-12px_rgba(0,0,0,0.8)]",
-          "backdrop-blur-md transition duration-300",
-          "hover:border-emerald-500/40 hover:text-emerald-300",
-          "hover:shadow-[0_0_0_1px_rgba(16,185,129,0.12)_inset,0_10px_28px_-10px_rgba(16,185,129,0.25)]",
+          "inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 transition-colors",
+          "hover:bg-white/[0.05] hover:text-zinc-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
-          open &&
-            "border-emerald-500/45 text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,0.16)_inset,0_10px_28px_-10px_rgba(16,185,129,0.28)]"
+          open && "bg-white/[0.05] text-zinc-200"
         )}
       >
-        <span
-          className={cn(
-            "pointer-events-none absolute inset-0 rounded-full opacity-0 transition duration-300",
-            "bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.18),transparent_55%)]",
-            "group-hover:opacity-100",
-            open && "opacity-100"
-          )}
-          aria-hidden
-        />
-        <SettingsGlyph
-          className={cn(
-            "relative h-[18px] w-[18px] transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            open && "rotate-90"
-          )}
-        />
+        <SettingsGlyph className="h-[18px] w-[18px]" />
       </button>
 
-      <div
-        id={panelId}
-        role="dialog"
-        aria-label="Profile settings"
-        aria-hidden={!open}
-        className={cn(
-          "absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(18.5rem,calc(100vw-2rem))] origin-top-right",
-          "transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          open
-            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-            : "pointer-events-none -translate-y-1 scale-[0.97] opacity-0"
-        )}
-      >
+      {open ? (
         <div
-          className={cn(
-            "overflow-hidden rounded-2xl border border-zinc-700/80",
-            "bg-zinc-950/95 shadow-2xl shadow-black/60 backdrop-blur-xl"
-          )}
+          id={panelId}
+          role="menu"
+          aria-label="Settings"
+          className="absolute right-0 top-full z-50 mt-1"
         >
-          <div className="relative border-b border-zinc-800/90 px-4 py-3.5">
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
-              aria-hidden
-            />
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
-              Account
-            </p>
-            <p className="mt-1 truncate text-sm font-medium text-white">
-              @{username}
-            </p>
-          </div>
-
-          <div className="space-y-1 p-2">
-            <div className="rounded-xl px-3 py-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-600">
-                Profile
-              </p>
-              <p className="mt-1 text-sm text-zinc-300">
-                Public page for your stash, diary, and ratings.
-              </p>
-            </div>
-
+          <div className="border border-white/10 bg-zinc-900">
             <button
               type="button"
+              role="menuitem"
               onClick={() => void handleSignOut()}
               disabled={signingOut}
-              className={cn(
-                "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left",
-                "text-sm text-zinc-300 transition",
-                "hover:bg-zinc-900 hover:text-white",
-                "disabled:cursor-not-allowed disabled:opacity-50"
-              )}
+              className="block w-full whitespace-nowrap px-3 py-2 text-left text-[13px] text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span>{signingOut ? "Signing out…" : "Sign out"}</span>
-              <SignOutGlyph className="h-4 w-4 shrink-0 text-zinc-500" />
+              {signingOut ? "Signing out…" : "Sign out"}
             </button>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -170,35 +113,18 @@ function SettingsGlyph({ className }: { className?: string }) {
       aria-hidden
     >
       <path
-        d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"
+        d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
         stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M19.4 13.1c.05-.36.05-.74 0-1.1l1.7-1.3a.5.5 0 0 0 .12-.64l-1.6-2.8a.5.5 0 0 0-.6-.22l-2 .8a7.4 7.4 0 0 0-.95-.55l-.3-2.1a.5.5 0 0 0-.5-.42h-3.2a.5.5 0 0 0-.5.42l-.3 2.1c-.33.14-.65.33-.95.55l-2-.8a.5.5 0 0 0-.6.22l-1.6 2.8a.5.5 0 0 0 .12.64l1.7 1.3c-.05.36-.05.74 0 1.1l-1.7 1.3a.5.5 0 0 0-.12.64l1.6 2.8a.5.5 0 0 0 .6.22l2-.8c.3.22.62.41.95.55l.3 2.1a.5.5 0 0 0 .5.42h3.2a.5.5 0 0 0 .5-.42l.3-2.1c.33-.14.65-.33.95-.55l2 .8a.5.5 0 0 0 .6-.22l1.6-2.8a.5.5 0 0 0-.12-.64l-1.7-1.3Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SignOutGlyph({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <path
-        d="M10 7V6.2A2.2 2.2 0 0 1 12.2 4h5.6A2.2 2.2 0 0 1 20 6.2v11.6A2.2 2.2 0 0 1 17.8 20h-5.6A2.2 2.2 0 0 1 10 17.8V17"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M15 12H4m0 0 3-3m-3 3 3 3"
-        stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke="currentColor"
+        strokeWidth="1.75"
       />
     </svg>
   );

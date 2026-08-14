@@ -130,7 +130,7 @@ export default function MediaDetailView({
             <button
               type="button"
               onClick={handleLogClick}
-              className="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500"
+              className="w-full rounded-md bg-emerald-600 px-3 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500"
             >
               {loggedBefore ? "Log Again" : "Log"}
             </button>
@@ -139,7 +139,7 @@ export default function MediaDetailView({
           {/* Title + description */}
           <div className="min-w-0 space-y-4 pt-2 lg:pt-32">
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-emerald-500/80">
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
                 {MEDIA_TYPE_LABELS[details.mediaType]}
               </p>
               <h1 className="font-serif text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">

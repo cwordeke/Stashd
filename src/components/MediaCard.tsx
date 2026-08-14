@@ -28,8 +28,7 @@ export default function MediaCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/80 transition hover:border-zinc-600 hover:bg-zinc-900",
-        compact && "rounded-lg"
+        "group relative flex flex-col overflow-hidden rounded-md border border-white/10 bg-zinc-900/80 transition-colors hover:border-white/20 hover:bg-zinc-900"
       )}
     >
       <Link href={href} className="flex min-h-0 flex-1 flex-col outline-none">
@@ -43,7 +42,7 @@ export default function MediaCard({
               className="object-cover transition duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900 px-2 text-center text-xs text-zinc-500">
+            <div className="flex h-full w-full items-center justify-center bg-zinc-800 px-2 text-center text-xs text-zinc-500">
               No artwork
             </div>
           )}

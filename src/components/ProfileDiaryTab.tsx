@@ -22,7 +22,7 @@ interface DiaryGroup {
 export default function ProfileDiaryTab({ entries }: ProfileDiaryTabProps) {
   if (!entries.length) {
     return (
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-14 text-center">
+      <div className="border border-white/[0.06] px-6 py-14 text-center">
         <p className="text-sm font-medium text-zinc-200">
           No diary entries logged yet.
         </p>
@@ -45,7 +45,7 @@ export default function ProfileDiaryTab({ entries }: ProfileDiaryTabProps) {
             {group.label}
           </h3>
 
-          <ul className="divide-y divide-zinc-800/80 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30">
+          <ul className="divide-y divide-white/[0.06] overflow-hidden border border-white/10">
             {group.entries.map((entry) => (
               <DiaryRow key={entry.id} entry={entry} />
             ))}

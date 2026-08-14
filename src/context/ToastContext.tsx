@@ -46,13 +46,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             role="status"
             className={cn(
-              "rounded-xl border px-4 py-3 text-sm shadow-xl backdrop-blur-md",
+              "rounded-md border px-4 py-3 text-[13px] shadow-lg",
               toast.kind === "success" &&
-                "border-emerald-700/60 bg-emerald-950/90 text-emerald-100",
+                "border-emerald-700/50 bg-emerald-950 text-emerald-100",
               toast.kind === "error" &&
-                "border-red-700/60 bg-red-950/90 text-red-100",
+                "border-red-700/50 bg-red-950 text-red-100",
               toast.kind === "info" &&
-                "border-zinc-700 bg-zinc-900/95 text-zinc-100"
+                "border-white/10 bg-zinc-900 text-zinc-100"
             )}
           >
             {toast.message}

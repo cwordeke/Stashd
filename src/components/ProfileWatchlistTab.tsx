@@ -12,7 +12,7 @@ export default function ProfileWatchlistTab({
 }: ProfileWatchlistTabProps) {
   if (!items.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
+      <div className="border border-dashed border-white/10 px-6 py-16 text-center">
         <p className="text-sm font-medium text-zinc-200">Watchlist coming soon</p>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
           Bookmarked movies, shows, games, books, and albums from your lists will

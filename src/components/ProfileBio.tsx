@@ -92,7 +92,7 @@ export default function ProfileBio({
           rows={3}
           placeholder="Tell people a bit about yourself…"
           className={cn(
-            "w-full resize-none rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2.5 text-sm leading-relaxed text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-emerald-600/60",
+            "w-full resize-none rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-white/[0.18]",
             !sidebar && "text-center"
           )}
           disabled={saving}
@@ -106,7 +106,7 @@ export default function ProfileBio({
               type="button"
               onClick={cancel}
               disabled={saving}
-              className="rounded-lg px-3 py-1.5 text-xs text-zinc-400 transition hover:text-zinc-200"
+              className="rounded-md px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
             >
               Cancel
             </button>
@@ -114,7 +114,7 @@ export default function ProfileBio({
               type="button"
               onClick={() => void save()}
               disabled={saving}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:opacity-60"
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-60"
             >
               {saving ? "Saving…" : "Save"}
             </button>

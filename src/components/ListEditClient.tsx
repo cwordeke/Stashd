@@ -317,13 +317,13 @@ export default function ListEditClient({
                 type="button"
                 onClick={handleDelete}
                 disabled={pending}
-                className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-500/40 hover:text-red-300 disabled:opacity-50"
+                className="rounded-md border border-white/10 bg-transparent px-3 py-2 text-[13px] font-medium text-zinc-300 transition-colors hover:border-red-500/40 hover:text-red-300 disabled:opacity-50"
               >
                 Delete
               </button>
               <Link
                 href={viewHref}
-                className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
+                className="rounded-md border border-white/10 px-3 py-2 text-[13px] font-medium text-zinc-200 transition-colors hover:bg-white/[0.05]"
               >
                 View list
               </Link>
@@ -333,7 +333,7 @@ export default function ListEditClient({
             type="submit"
             form="list-meta-form"
             disabled={pending || (!dirty && mode === "edit")}
-            className="rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {pending ? "Saving…" : "Save"}
           </button>
@@ -343,7 +343,7 @@ export default function ListEditClient({
       <form
         id="list-meta-form"
         onSubmit={handleSave}
-        className="grid gap-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:grid-cols-2 sm:p-5"
+        className="grid gap-5 border border-white/10 bg-zinc-900/30 p-4 sm:grid-cols-2 sm:p-5"
       >
         <div className="space-y-4">
           <label className="block space-y-1.5">
@@ -358,7 +358,7 @@ export default function ListEditClient({
               }}
               required
               maxLength={120}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-emerald-500"
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-white/[0.18]"
               placeholder="e.g. Favorites of 2026"
             />
           </label>
@@ -370,7 +370,7 @@ export default function ListEditClient({
             <p className="text-[11px] text-zinc-600">
               Press Tab or Enter to create
             </p>
-            <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-2">
+            <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-2">
               {tags.map((tag) => (
                 <button
                   key={tag}
@@ -405,14 +405,14 @@ export default function ListEditClient({
                 setIsPublic(e.target.value === "public");
                 markDirty();
               }}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-emerald-500"
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-white/[0.18]"
             >
               <option value="public">Anyone — Public list</option>
               <option value="private">Only you — Private list</option>
             </select>
           </label>
 
-          <label className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-3">
+          <label className="flex items-start gap-3 border border-white/10 bg-white/[0.03] px-3 py-3">
             <input
               type="checkbox"
               checked={isRanked}
@@ -445,7 +445,7 @@ export default function ListEditClient({
             }}
             rows={10}
             maxLength={4000}
-            className="h-[calc(100%-1.5rem)] min-h-[10rem] w-full resize-y rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm leading-relaxed text-zinc-100 outline-none focus:border-emerald-500"
+            className="h-[calc(100%-1.5rem)] min-h-[10rem] w-full resize-y rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-zinc-100 outline-none focus:border-white/[0.18]"
             placeholder="What’s this list about?"
           />
         </label>
@@ -483,7 +483,7 @@ export default function ListEditClient({
         </div>
 
         {!items.length ? (
-          <div className="rounded-2xl border border-dashed border-zinc-800 px-6 py-14 text-center text-sm text-zinc-500">
+          <div className="border border-dashed border-white/10 px-6 py-14 text-center text-sm text-zinc-500">
             Search above to add movies, shows, games, books, or albums.
           </div>
         ) : view === "grid" ? (
@@ -530,7 +530,7 @@ export default function ListEditClient({
             ))}
           </ul>
         ) : (
-          <ul className="divide-y divide-zinc-800 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30">
+          <ul className="divide-y divide-white/[0.06] overflow-hidden border border-white/10">
             {items.map((item, index) => (
               <EditListRow
                 key={item.id}
@@ -660,13 +660,13 @@ function AddMediaSearch({
           aria-expanded={open}
           aria-controls={listId}
           aria-autocomplete="list"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500 disabled:opacity-50"
+          className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/[0.18] disabled:opacity-50"
         />
         {open && (suggestions.length > 0 || loading) ? (
           <ul
             id={listId}
             role="listbox"
-            className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-zinc-700 bg-zinc-950 py-1 shadow-xl"
+            className="absolute z-20 mt-1 max-h-72 w-full overflow-auto border border-white/10 bg-zinc-950 py-1"
           >
             {loading && !suggestions.length ? (
               <li className="px-3 py-2 text-xs text-zinc-500">Searching…</li>
@@ -813,7 +813,7 @@ function EditListRow({
               rows={2}
               maxLength={2000}
               placeholder="Add a note…"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500"
+              className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-2 text-sm text-zinc-200 outline-none focus:border-white/[0.18]"
             />
             <div className="flex gap-2">
               <button

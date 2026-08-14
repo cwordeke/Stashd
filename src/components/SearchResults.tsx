@@ -239,12 +239,12 @@ export default function SearchResults() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Search movies, TV, games, books, music…"
-            className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none ring-emerald-500/40 placeholder:text-zinc-500 focus:border-emerald-600 focus:ring-2"
+            className="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[13px] text-white outline-none placeholder:text-zinc-500 focus:border-white/[0.18]"
           />
           <button
             type="submit"
             disabled={!inputValue.trim()}
-            className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md bg-emerald-600 px-3.5 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Search
           </button>
@@ -311,7 +311,7 @@ export default function SearchResults() {
               <button
                 type="button"
                 onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-sm text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+                className="rounded-md border border-white/10 px-4 py-2 text-[13px] text-zinc-300 transition-colors hover:bg-white/[0.05] hover:text-white"
               >
                 Load more
               </button>
@@ -344,10 +344,10 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-3 py-1 text-xs transition",
+        "rounded-md px-2.5 py-1 text-[13px] transition-colors",
         active
-          ? "bg-zinc-100 text-zinc-900"
-          : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+          ? "bg-white/[0.08] text-white"
+          : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300"
       )}
     >
       {label}

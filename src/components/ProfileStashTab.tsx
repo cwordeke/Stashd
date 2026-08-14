@@ -120,7 +120,7 @@ export default function ProfileStashTab({ items }: ProfileStashTabProps) {
 
 function EmptyPanel({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-14 text-center">
+    <div className="border border-white/[0.06] px-6 py-14 text-center">
       <p className="text-sm font-medium text-zinc-200">{title}</p>
       <p className="mt-1.5 text-sm text-zinc-500">{body}</p>
     </div>

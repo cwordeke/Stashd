@@ -79,9 +79,7 @@ export default async function HomePage() {
         <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
           {username ? (
             <>
-              Welcome back,{" "}
-              <span className="text-emerald-400">{username},</span> here&apos;s
-              what&apos;s new...
+              Welcome back, {username} — here&apos;s what&apos;s new...
             </>
           ) : (
             <>Welcome — here&apos;s what&apos;s new...</>
@@ -92,7 +90,7 @@ export default async function HomePage() {
             <NavLink
               key={type}
               href={CATEGORY_META[type].href}
-              className="rounded-full border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-emerald-600/50 hover:text-white"
+              className="rounded-md border border-white/10 px-2.5 py-1 text-[13px] text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
             >
               {CATEGORY_META[type].title}
             </NavLink>
@@ -107,7 +105,7 @@ export default async function HomePage() {
           </h2>
           <span className="text-xs text-zinc-500">Placeholder feed</span>
         </div>
-        <ul className="divide-y divide-zinc-800 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
+        <ul className="divide-y divide-white/[0.06] overflow-hidden border border-white/10">
           {ACTIVITY.map((item) => (
             <li
               key={item.id}
