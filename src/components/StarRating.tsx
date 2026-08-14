@@ -19,6 +19,8 @@ interface StarRatingProps {
     year: string;
     thumbnail: string | null;
   };
+  /** Called after a rating is saved successfully */
+  onRated?: () => void;
 }
 
 export default function StarRating({
@@ -28,6 +30,7 @@ export default function StarRating({
   isAuthenticated,
   compact = false,
   mediaMeta,
+  onRated,
 }: StarRatingProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -62,6 +65,7 @@ export default function StarRating({
       }
 
       setRating(result.rating);
+      onRated?.();
       router.refresh();
     });
   }

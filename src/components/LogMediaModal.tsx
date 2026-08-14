@@ -10,7 +10,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { logMedia } from "@/app/actions/diary";
-import { useToast } from "@/context/ToastContext";
 import { cn } from "@/lib/cn";
 import type { MediaDetails, MediaType } from "@/lib/types";
 
@@ -66,7 +65,6 @@ export default function LogMediaModal({
   onLogged,
 }: LogMediaModalProps) {
   const router = useRouter();
-  const { showToast } = useToast();
   const titleId = useId();
   const [isPending, startTransition] = useTransition();
   const labels = logLabels(details.mediaType);
@@ -127,11 +125,9 @@ export default function LogMediaModal({
       });
 
       if (!result.ok) {
-        showToast(result.message, "error");
         return;
       }
 
-      showToast(result.message, "success");
       onLogged?.();
       onClose();
       router.refresh();

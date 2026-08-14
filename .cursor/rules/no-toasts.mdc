@@ -1,0 +1,12 @@
+---
+description: Never add toast/snackbar hint popups
+alwaysApply: true
+---
+
+# No toast / hint popups
+
+Do **not** add toast notifications, snackbars, bottom-of-screen hints, or similar transient popup messages (green success, red error, or otherwise).
+
+- Do not create or restore `ToastContext`, `ToastProvider`, `useToast`, or `showToast`
+- Do not use toast libraries for user feedback
+- Prefer silent success, inline UI state, or existing flows (modal close, `router.refresh()`, optimistic updates) instead of popups

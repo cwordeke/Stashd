@@ -4,7 +4,6 @@ import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleFollow } from "@/app/actions/social";
 import ProfileSettings from "@/components/ProfileSettings";
-import { useToast } from "@/context/ToastContext";
 import { cn } from "@/lib/cn";
 import type { UserRatingStats } from "@/lib/ratings";
 
@@ -95,7 +94,6 @@ function useFollowToggle(
   initialFollowers: number
 ) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [, startTransition] = useTransition();
   const [state, setState] = useState({
     isFollowing: initialIsFollowing,
@@ -123,7 +121,6 @@ function useFollowToggle(
       const result = await toggleFollow(targetUserId, !next);
 
       if (!result.ok) {
-        showToast(result.message, "error");
         return;
       }
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { completedStatusFor } from "@/lib/media-status";
 import {
   RATING_STEPS,
   type RatingActionResult,
@@ -14,6 +15,82 @@ function clampRating(rating: number): number | null {
   const stepped = Math.round(rating * 2) / 2;
   if (stepped < 0.5 || stepped > 5) return null;
   return stepped;
+}
+
+type MediaMeta = {
+  title?: string;
+  creator?: string;
+  year?: string;
+  thumbnail?: string | null;
+};
+
+async function markCompletedAfterRating(
+  userId: string,
+  mediaId: string,
+  mediaType: MediaType,
+  meta?: MediaMeta
+) {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data: existingLog } = await supabase
+    .from("user_media_logs")
+    .select("id, on_list, is_liked")
+    .eq("user_id", userId)
+    .eq("media_id", mediaId)
+    .eq("media_type", mediaType)
+    .maybeSingle();
+
+  const fields: Record<string, unknown> = {
+    status: completedStatusFor(mediaType),
+    on_list: Boolean(existingLog?.on_list),
+    is_liked: Boolean(existingLog?.is_liked),
+    updated_at: now,
+  };
+
+  if (meta?.title) fields.title = meta.title;
+  if (meta?.creator) fields.creator = meta.creator;
+  if (meta?.year) fields.release_year = meta.year;
+  if (meta?.thumbnail !== undefined) fields.image_url = meta.thumbnail;
+
+  if (existingLog?.id) {
+    const { error } = await supabase
+      .from("user_media_logs")
+      .update(fields)
+      .eq("id", existingLog.id);
+
+    if (error) {
+      await supabase
+        .from("user_media_logs")
+        .update({
+          status: completedStatusFor(mediaType),
+          on_list: Boolean(existingLog.on_list),
+          is_liked: Boolean(existingLog.is_liked),
+          updated_at: now,
+        })
+        .eq("id", existingLog.id);
+    }
+    return;
+  }
+
+  const { error: insertError } = await supabase.from("user_media_logs").insert({
+    user_id: userId,
+    media_id: mediaId,
+    media_type: mediaType,
+    ...fields,
+  });
+
+  if (insertError) {
+    await supabase.from("user_media_logs").insert({
+      user_id: userId,
+      media_id: mediaId,
+      media_type: mediaType,
+      status: completedStatusFor(mediaType),
+      on_list: false,
+      is_liked: false,
+      updated_at: now,
+    });
+  }
 }
 
 export async function getUserRating(
@@ -43,12 +120,7 @@ export async function rateMedia(
   mediaId: string,
   mediaType: string,
   rating: number,
-  meta?: {
-    title?: string;
-    creator?: string;
-    year?: string;
-    thumbnail?: string | null;
-  }
+  meta?: MediaMeta
 ): Promise<RatingActionResult> {
   const supabase = await createClient();
   const {
@@ -141,6 +213,9 @@ export async function rateMedia(
       }
     }
   }
+
+  // Rating implies the user has finished it — auto-select Watched/Played/etc.
+  await markCompletedAfterRating(user.id, mediaId, mediaType, meta);
 
   revalidatePath(mediaDetailPath(mediaType, mediaId));
 

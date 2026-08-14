@@ -22,7 +22,6 @@ import {
   updateList,
   updateListItemNotes,
 } from "@/app/actions/lists";
-import { useToast } from "@/context/ToastContext";
 import { flattenRanked, searchAllMedia } from "@/lib/search-client";
 import type { ListItem, MediaList } from "@/lib/profile-tabs";
 import {
@@ -48,7 +47,6 @@ export default function ListEditClient({
   mode,
 }: ListEditClientProps) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [pending, startTransition] = useTransition();
 
   const [listId, setListId] = useState(list?.id ?? null);
@@ -120,11 +118,9 @@ export default function ListEditClient({
         isPublic,
       });
       if (!result.ok) {
-        showToast(result.message);
         return;
       }
       setDirty(false);
-      showToast("List saved");
       router.refresh();
     });
   }
@@ -133,7 +129,6 @@ export default function ListEditClient({
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      showToast("Name is required");
       return;
     }
 
@@ -147,12 +142,10 @@ export default function ListEditClient({
           isPublic,
         });
         if (!result.ok || !result.listId) {
-          showToast(result.message);
           return;
         }
         setListId(result.listId);
         setDirty(false);
-        showToast("List created");
         router.replace(`/u/${username}/lists/${result.listId}/edit`);
         router.refresh();
         return;
@@ -169,7 +162,6 @@ export default function ListEditClient({
     }
     startTransition(async () => {
       const result = await deleteList(listId);
-      showToast(result.message);
       if (result.ok) {
         router.push(profileListsHref);
         router.refresh();
@@ -181,7 +173,6 @@ export default function ListEditClient({
     if (listId) return listId;
     const trimmed = name.trim();
     if (!trimmed) {
-      showToast("Name is required before adding titles");
       return null;
     }
     const result = await createList({
@@ -192,7 +183,6 @@ export default function ListEditClient({
       isPublic,
     });
     if (!result.ok || !result.listId) {
-      showToast(result.message);
       return null;
     }
     setListId(result.listId);
@@ -208,7 +198,6 @@ export default function ListEditClient({
 
       const result = await addListItem(id, media);
       if (!result.ok) {
-        showToast(result.message);
         return;
       }
 
@@ -237,7 +226,6 @@ export default function ListEditClient({
           },
         ];
       });
-      showToast("Added to list");
       router.refresh();
     });
   }
@@ -247,11 +235,9 @@ export default function ListEditClient({
     startTransition(async () => {
       const result = await removeListItem(listId, itemId);
       if (!result.ok) {
-        showToast(result.message);
         return;
       }
       setItems((prev) => prev.filter((item) => item.id !== itemId));
-      showToast("Removed");
       router.refresh();
     });
   }
@@ -261,7 +247,6 @@ export default function ListEditClient({
     startTransition(async () => {
       const result = await updateListItemNotes(listId, itemId, notes);
       if (!result.ok) {
-        showToast(result.message);
         return;
       }
       setItems((prev) =>
@@ -280,8 +265,7 @@ export default function ListEditClient({
 
     startTransition(async () => {
       const result = await reorderListItems(listId, ids);
-      if (!result.ok) showToast(result.message);
-      else router.refresh();
+      if (result.ok) router.refresh();
     });
   }
 

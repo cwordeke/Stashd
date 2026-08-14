@@ -18,26 +18,29 @@ interface SpotifyAlbum {
   release_date?: string;
   images?: SpotifyImage[];
   artists?: SpotifyArtist[];
-}
-
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  album?: {
-    release_date?: string;
-    images?: SpotifyImage[];
-  };
-  artists?: SpotifyArtist[];
+  total_tracks?: number;
 }
 
 /** Non-Latin scripts (Arabic, CJK, Hangul, Cyrillic, Devanagari, Thai, etc.). */
 const NON_LATIN_SCRIPT =
   /[\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/u;
 
+const CLEAN_LABEL =
+  /\b(clean(\s+version)?|edited|radio\s+edit)\b/i;
+
 function isEnglishFriendlyText(...parts: Array<string | undefined>): boolean {
   const text = parts.filter(Boolean).join(" ");
   if (!text.trim()) return false;
   return !NON_LATIN_SCRIPT.test(text);
+}
+
+/** Full LPs only — no singles, EPs-as-singles, or 1-track “albums”. */
+function isFullAlbum(album: SpotifyAlbum): boolean {
+  if ((album.album_type ?? "album") !== "album") return false;
+  if (typeof album.total_tracks === "number" && album.total_tracks < 2) {
+    return false;
+  }
+  return Boolean(album.id);
 }
 
 function toMusicItem(album: SpotifyAlbum): UnifiedMediaItem {
@@ -51,13 +54,119 @@ function toMusicItem(album: SpotifyAlbum): UnifiedMediaItem {
   };
 }
 
+function normalizeAlbumTitle(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(
+      /\s*[\(\[]\s*(clean(\s+version)?|edited|radio\s+edit|explicit)\s*[\)\]]/gi,
+      ""
+    )
+    .replace(/\s*-\s*(clean(\s+version)?|edited|explicit)\s*$/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function albumDedupeKey(album: SpotifyAlbum): string {
+  const artist = (album.artists?.[0]?.name ?? "").toLowerCase().trim();
+  return `${artist}::${normalizeAlbumTitle(album.name)}`;
+}
+
+function isCleanLabeled(name: string): boolean {
+  return CLEAN_LABEL.test(name);
+}
+
+async function albumHasExplicitTracks(
+  albumId: string,
+  token: string
+): Promise<boolean> {
+  const res = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    next: { revalidate: 86400 },
+  });
+  if (!res.ok) return false;
+
+  const data = (await res.json()) as {
+    tracks?: { items?: Array<{ explicit?: boolean }> };
+  };
+
+  return (data.tracks?.items ?? []).some((track) => track.explicit === true);
+}
+
+/**
+ * Collapse clean/explicit duplicates (same artist + title). Prefer explicit.
+ */
+async function dedupePreferExplicit(
+  albums: SpotifyAlbum[],
+  token: string
+): Promise<SpotifyAlbum[]> {
+  const groups = new Map<string, SpotifyAlbum[]>();
+
+  for (const album of albums) {
+    const key = albumDedupeKey(album);
+    const group = groups.get(key);
+    if (group) group.push(album);
+    else groups.set(key, [album]);
+  }
+
+  const picked: SpotifyAlbum[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      picked.push(group[0]!);
+      continue;
+    }
+
+    const nonClean = group.filter((album) => !isCleanLabeled(album.name));
+    const candidates = nonClean.length > 0 ? nonClean : group;
+
+    if (candidates.length === 1) {
+      picked.push(candidates[0]!);
+      continue;
+    }
+
+    const scored = await Promise.all(
+      candidates.map(async (album) => ({
+        album,
+        explicit: await albumHasExplicitTracks(album.id, token),
+      }))
+    );
+
+    const explicitHit = scored.find((entry) => entry.explicit);
+    picked.push((explicitHit ?? scored[0]!).album);
+  }
+
+  return picked;
+}
+
+function filterAlbumCandidates(albums: SpotifyAlbum[]): SpotifyAlbum[] {
+  const out: SpotifyAlbum[] = [];
+  const seenIds = new Set<string>();
+
+  for (const album of albums) {
+    if (!isFullAlbum(album) || seenIds.has(album.id)) continue;
+    if (
+      !isEnglishFriendlyText(
+        album.name,
+        ...(album.artists?.map((a) => a.name) ?? [])
+      )
+    ) {
+      continue;
+    }
+    seenIds.add(album.id);
+    out.push(album);
+  }
+
+  return out;
+}
+
 export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
   const token = await getSpotifyAccessToken();
 
   const url = new URL("https://api.spotify.com/v1/search");
   url.searchParams.set("q", query);
-  url.searchParams.set("type", "album,track");
-  url.searchParams.set("limit", "8");
+  // Albums only — never surface individual tracks
+  url.searchParams.set("type", "album");
+  url.searchParams.set("limit", "15");
   url.searchParams.set("market", "US");
 
   const res = await fetch(url.toString(), {
@@ -69,50 +178,18 @@ export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
 
   const data = (await res.json()) as {
     albums?: { items?: SpotifyAlbum[] };
-    tracks?: { items?: SpotifyTrack[] };
   };
 
-  const results: UnifiedMediaItem[] = [];
-
-  for (const album of data.albums?.items ?? []) {
-    if (
-      !isEnglishFriendlyText(
-        album.name,
-        ...(album.artists?.map((a) => a.name) ?? [])
-      )
-    ) {
-      continue;
-    }
-    results.push(toMusicItem(album));
-  }
-
-  for (const track of data.tracks?.items ?? []) {
-    if (
-      !isEnglishFriendlyText(
-        track.name,
-        ...(track.artists?.map((a) => a.name) ?? [])
-      )
-    ) {
-      continue;
-    }
-    results.push({
-      id: `track-${track.id}`,
-      title: track.name,
-      creator: track.artists?.map((a) => a.name).join(", ") || "—",
-      year: yearFromDate(track.album?.release_date),
-      thumbnail: spotifyArt(track.album?.images),
-      mediaType: "music",
-    });
-  }
-
-  return results;
+  const candidates = filterAlbumCandidates(data.albums?.items ?? []);
+  const deduped = await dedupePreferExplicit(candidates, token);
+  return deduped.map(toMusicItem);
 }
 
 /** Spotify search max `limit` is 10 (Feb 2026); paginate to fill the grid. */
 const TRENDING_MUSIC_TARGET = 20;
 const SEARCH_PAGE_SIZE = 10;
 /** Parallel page offsets — enough headroom after album-type + Latin-script filters. */
-const TRENDING_PAGE_OFFSETS = [0, 10, 20, 30];
+const TRENDING_PAGE_OFFSETS = [0, 10, 20, 30, 40];
 
 export async function getTrendingMusic(): Promise<UnifiedMediaItem[]> {
   const token = await getSpotifyAccessToken();
@@ -146,31 +223,9 @@ export async function getTrendingMusic(): Promise<UnifiedMediaItem[]> {
     })
   );
 
-  const candidates: SpotifyAlbum[] = [];
-  const seen = new Set<string>();
-
-  for (const page of pages) {
-    for (const album of page) {
-      if (!album.id || seen.has(album.id)) continue;
-      if (
-        !isEnglishFriendlyText(
-          album.name,
-          ...(album.artists?.map((a) => a.name) ?? [])
-        )
-      ) {
-        continue;
-      }
-      seen.add(album.id);
-      candidates.push(album);
-    }
-  }
-
-  // Prefer full albums (most popular LPs) over singles/EPs; fill remainder if needed.
-  const albums = candidates.filter((a) => a.album_type === "album");
-  const fillers = candidates.filter((a) => a.album_type !== "album");
-  const selected = [...albums, ...fillers].slice(0, TRENDING_MUSIC_TARGET);
-
-  return selected.map(toMusicItem);
+  const candidates = filterAlbumCandidates(pages.flat());
+  const deduped = await dedupePreferExplicit(candidates, token);
+  return deduped.slice(0, TRENDING_MUSIC_TARGET).map(toMusicItem);
 }
 
 export async function getPopularMusic(): Promise<UnifiedMediaItem[]> {

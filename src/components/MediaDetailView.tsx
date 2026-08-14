@@ -27,12 +27,23 @@ export default function MediaDetailView({
   const router = useRouter();
   const [logOpen, setLogOpen] = useState(false);
   const [loggedBefore, setLoggedBefore] = useState(hasLoggedBefore);
+  const [logState, setLogState] = useState(initialLog);
   const hasBackdrop = Boolean(details.backdropUrl);
   const bannerSrc = details.backdropUrl ?? details.thumbnail;
 
   useEffect(() => {
     setLoggedBefore(hasLoggedBefore);
   }, [hasLoggedBefore]);
+
+  useEffect(() => {
+    setLogState(initialLog);
+  }, [initialLog]);
+
+  function markCompleted() {
+    setLogState((prev) =>
+      prev.completed ? prev : { ...prev, completed: true }
+    );
+  }
 
   function handleLogClick() {
     if (!isAuthenticated) {
@@ -112,12 +123,13 @@ export default function MediaDetailView({
                 year: details.year,
                 thumbnail: details.thumbnail,
               }}
+              onRated={markCompleted}
             />
 
             <MediaStatusControls
               mediaId={details.id}
               mediaType={details.mediaType}
-              initialState={initialLog}
+              initialState={logState}
               isAuthenticated={isAuthenticated}
               mediaMeta={{
                 title: details.title,
@@ -185,7 +197,10 @@ export default function MediaDetailView({
         isRepeatLog={loggedBefore}
         open={logOpen}
         onClose={() => setLogOpen(false)}
-        onLogged={() => setLoggedBefore(true)}
+        onLogged={() => {
+          setLoggedBefore(true);
+          markCompleted();
+        }}
       />
     </div>
   );
