@@ -181,34 +181,45 @@ export default function SearchModal() {
     showPanel && !loading && trimmedQuery.length > 0 && resultCount === 0;
 
   return (
-    <div ref={rootRef} className="relative min-w-0 flex-1 md:max-w-xs lg:max-w-sm">
+    <div ref={rootRef} className="relative w-[184px] shrink-0 sm:w-[200px]">
       <form onSubmit={handleSubmit} className="w-full">
-        <input
-          ref={inputRef}
-          type="search"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={tab === "users" ? "Search users…" : "Search…"}
-          aria-label={tab === "users" ? "Search users" : "Search media"}
-          aria-autocomplete="list"
-          aria-controls={listId}
-          aria-expanded={showPanel}
-          aria-activedescendant={
-            activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
-          }
-          role="combobox"
-          autoComplete="off"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none ring-emerald-500/40 placeholder:text-zinc-500 focus:border-emerald-600 focus:ring-2"
-        />
+        <div className="relative">
+          <SearchGlyph className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              tab === "users" ? "Search users…" : "Search movies, shows..."
+            }
+            aria-label={tab === "users" ? "Search users" : "Search media"}
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-expanded={showPanel}
+            aria-activedescendant={
+              activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
+            }
+            role="combobox"
+            autoComplete="off"
+            className={cn(
+              "h-9 w-full rounded-md border border-white/[0.08] bg-white/[0.04] py-0 pl-8 pr-3",
+              "text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500",
+              "transition-colors",
+              "hover:border-white/[0.12]",
+              "focus:border-white/[0.18] focus:bg-white/[0.06]"
+            )}
+          />
+        </div>
       </form>
 
       {showPanel ? (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-xl shadow-black/40">
+        <div className="absolute right-0 top-full z-50 mt-1.5 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-white/10 bg-zinc-950 shadow-lg shadow-black/40">
           <div
             className="flex gap-1 border-b border-zinc-800 p-1.5"
             role="tablist"
@@ -313,6 +324,26 @@ export default function SearchModal() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function SearchGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle
+        cx="11"
+        cy="11"
+        r="6.25"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M16.2 16.2 20 20"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
