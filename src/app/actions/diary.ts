@@ -245,6 +245,7 @@ export async function logMedia(input: LogMediaInput): Promise<LogMediaResult> {
 
   revalidatePath(mediaDetailPath(mediaType, mediaId));
   revalidatePath("/profile");
+  revalidatePath("/");
 
   const { data: profile } = await supabase
     .from("profiles")

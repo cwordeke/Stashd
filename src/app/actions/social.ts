@@ -92,6 +92,7 @@ export async function toggleFollow(
   for (const username of names.values()) {
     revalidatePath(`/u/${username}`);
   }
+  revalidatePath("/");
 
   return { ok: true, isFollowing: !isCurrentlyFollowing };
 }

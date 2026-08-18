@@ -96,3 +96,21 @@ export async function getPopularBooks(): Promise<UnifiedMediaItem[]> {
   const data = (await res.json()) as OpenLibraryResponse;
   return mapDocs(data.docs ?? []);
 }
+
+export async function getNewBooks(): Promise<UnifiedMediaItem[]> {
+  const year = new Date().getFullYear();
+  const url = new URL("https://openlibrary.org/search.json");
+  url.searchParams.set("q", `language:eng first_publish_year:${year}`);
+  url.searchParams.set("sort", "already_read");
+  url.searchParams.set("limit", "20");
+  url.searchParams.set(
+    "fields",
+    "key,title,author_name,first_publish_year,cover_i"
+  );
+
+  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  if (!res.ok) throw new Error(`Open Library new books failed: ${res.status}`);
+
+  const data = (await res.json()) as OpenLibraryResponse;
+  return mapDocs(data.docs ?? []);
+}

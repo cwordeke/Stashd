@@ -1,5 +1,6 @@
 import { getTwitchAccessToken, getTwitchClientId } from "@/lib/twitch";
 import { igdbCover, yearFromUnix } from "@/lib/media";
+import { recentReleaseWindow, startOfDay, unixSeconds } from "@/lib/release-window";
 import type { UnifiedMediaItem } from "@/lib/types";
 
 interface IgdbGame {
@@ -7,6 +8,7 @@ interface IgdbGame {
   name?: string;
   first_release_date?: number;
   cover?: { url?: string };
+  similar_games?: number[];
   involved_companies?: Array<{
     developer?: boolean;
     publisher?: boolean;
@@ -83,4 +85,40 @@ export async function getTrendingGames(): Promise<UnifiedMediaItem[]> {
 
 export async function getPopularGames(): Promise<UnifiedMediaItem[]> {
   return getTrendingGames();
+}
+
+export async function getNewGames(): Promise<UnifiedMediaItem[]> {
+  const { from, to } = recentReleaseWindow(3);
+  const since = unixSeconds(startOfDay(from));
+  const now = unixSeconds(startOfDay(to)) + 24 * 60 * 60 - 1;
+  const body = [
+    `where first_release_date >= ${since} & first_release_date <= ${now} & version_parent = null & cover != null;`,
+    "sort rating_count desc;",
+    FIELDS,
+    "limit 20;",
+  ].join(" ");
+
+  return mapGames(await igdbQuery(body, 86400));
+}
+
+export async function getSimilarGames(id: string): Promise<UnifiedMediaItem[]> {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) return [];
+
+  const rows = await igdbQuery(
+    `fields similar_games; where id = ${numericId}; limit 1;`,
+    86400
+  );
+  const similarIds = (rows[0]?.similar_games ?? [])
+    .filter((value) => Number.isFinite(value))
+    .slice(0, 12);
+  if (similarIds.length === 0) return [];
+
+  const body = [
+    `where id = (${similarIds.join(",")}) & cover != null & version_parent = null;`,
+    FIELDS,
+    "limit 10;",
+  ].join(" ");
+
+  return mapGames(await igdbQuery(body, 86400));
 }

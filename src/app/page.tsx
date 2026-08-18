@@ -1,69 +1,85 @@
 import { Suspense } from "react";
-import MediaCard from "@/components/MediaCard";
+import ActivityFeed from "@/components/ActivityFeed";
 import NavLink from "@/components/NavLink";
-import { MediaCardSkeleton } from "@/components/LoadingSkeleton";
+import SpotlightShelf, {
+  SpotlightShelfSkeleton,
+} from "@/components/SpotlightShelf";
+import { getSocialFeed } from "@/app/actions/feed";
 import { CATEGORY_META } from "@/lib/constants";
+import { getDiscoverSuggestions, getPopularThisWeek } from "@/lib/discover";
 import { getOwnProfile } from "@/lib/profile";
-import { getTrendingForType } from "@/lib/trending";
-import { MEDIA_TYPES, type UnifiedMediaItem } from "@/lib/types";
+import { MEDIA_TYPES, mediaKey, type UnifiedMediaItem } from "@/lib/types";
 
 export const revalidate = 86400;
 
-const ACTIVITY = [
-  {
-    id: "1",
-    text: "You rated Blade Runner 2049 ★★★★½",
-    time: "2h ago",
-    medium: "Movies",
-  },
-  {
-    id: "2",
-    text: "Added Elden Ring to Top 4 Games",
-    time: "Yesterday",
-    medium: "Games",
-  },
-  {
-    id: "3",
-    text: "Finished reading Neuromancer",
-    time: "3d ago",
-    medium: "Books",
-  },
-  {
-    id: "4",
-    text: "Logged Random Access Memories",
-    time: "5d ago",
-    medium: "Music",
-  },
-];
-
-async function loadSpotlight(): Promise<UnifiedMediaItem[]> {
-  const picks = await Promise.all(
-    MEDIA_TYPES.map(async (type) => {
-      const { results } = await getTrendingForType(type);
-      return results[0] ?? null;
-    })
-  );
-
-  return picks.filter((item): item is UnifiedMediaItem => item !== null);
+async function HomeFeed({ signedIn }: { signedIn: boolean }) {
+  const items = signedIn ? await getSocialFeed() : [];
+  return <ActivityFeed items={items} signedIn={signedIn} />;
 }
 
-async function SpotlightGrid() {
-  const spotlight = await loadSpotlight();
+async function PopularShelf() {
+  const items = await getPopularThisWeek();
+  return <SpotlightShelf title="Popular This Week" items={items} />;
+}
+
+async function FriendsLogsShelf({ signedIn }: { signedIn: boolean }) {
+  if (!signedIn) {
+    return (
+      <SpotlightShelf
+        title="Friends' Recent Logs"
+        items={[]}
+        emptyMessage="Sign in to see what friends are logging."
+      />
+    );
+  }
+
+  const feed = await getSocialFeed();
+  const seen = new Set<string>();
+  const items: Array<UnifiedMediaItem & { rating?: number | null }> = [];
+
+  for (const event of feed) {
+    if (event.kind !== "log") continue;
+    const key = mediaKey(event.media);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push({ ...event.media, rating: event.rating });
+    if (items.length >= 16) break;
+  }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-      {spotlight.map((item) => (
-        <MediaCard key={`${item.mediaType}-${item.id}`} item={item} />
-      ))}
-    </div>
+    <SpotlightShelf
+      title="Friends' Recent Logs"
+      items={items}
+        emptyMessage="Follow people to see what they're watching, playing, and reading."
+    />
   );
 }
 
-function SpotlightFallback() {
+async function DiscoverShelf() {
+  const items = await getDiscoverSuggestions();
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-      {Array.from({ length: 5 }, (_, i) => (
-        <MediaCardSkeleton key={i} />
+    <SpotlightShelf
+      title="Discover"
+      items={items}
+      emptyMessage="Log, stash, or rate something and we'll suggest similar media here."
+    />
+  );
+}
+
+function FeedSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/10">
+      {Array.from({ length: 6 }, (_, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 border-b border-white/[0.06] px-4 py-3.5 last:border-b-0"
+        >
+          <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-zinc-800" />
+          <div className="min-w-0 flex-1 space-y-2 py-0.5">
+            <div className="h-3.5 w-[85%] animate-pulse rounded bg-zinc-800" />
+            <div className="h-3 w-40 animate-pulse rounded bg-zinc-800/70" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -72,19 +88,23 @@ function SpotlightFallback() {
 export default async function HomePage() {
   const profile = await getOwnProfile();
   const username = profile?.username;
+  const signedIn = Boolean(profile);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="space-y-4">
         <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
           {username ? (
-            <>
-              Welcome back, {username} — here&apos;s what&apos;s new...
-            </>
+            <>Welcome back, {username}</>
           ) : (
-            <>Welcome — here&apos;s what&apos;s new...</>
+            <>Welcome to Stashd</>
           )}
         </h1>
+        <p className="max-w-xl text-sm text-zinc-400">
+          {signedIn
+            ? "See what friends are logging, plus picks based on what you like."
+            : "Track movies, TV, games, books, and music — then follow friends to fill your feed."}
+        </p>
         <div className="flex flex-wrap gap-2 pt-1">
           {MEDIA_TYPES.map((type) => (
             <NavLink
@@ -98,40 +118,32 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-3">
-          <h2 className="text-xl font-semibold text-zinc-100">
-            Recent Activity
-          </h2>
-          <span className="text-xs text-zinc-500">Placeholder feed</span>
-        </div>
-        <ul className="divide-y divide-white/[0.06] overflow-hidden border border-white/10">
-          {ACTIVITY.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
-            >
-              <div>
-                <p className="text-sm text-zinc-200">{item.text}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">{item.medium}</p>
-              </div>
-              <time className="shrink-0 text-xs text-zinc-600">{item.time}</time>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="mt-10 grid items-start gap-10 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-100 sm:text-xl">
+              Friend activity
+            </h2>
+          </div>
+          <Suspense fallback={<FeedSkeleton />}>
+            <HomeFeed signedIn={signedIn} />
+          </Suspense>
+        </aside>
 
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-3">
-          <h2 className="text-xl font-semibold text-zinc-100">
-            Cross-Media Spotlight
-          </h2>
-          <span className="text-xs text-zinc-500">One from each medium</span>
+        <div className="space-y-10">
+          <Suspense fallback={<SpotlightShelfSkeleton title="Popular This Week" />}>
+            <PopularShelf />
+          </Suspense>
+          <Suspense fallback={<SpotlightShelfSkeleton title="Discover" />}>
+            <DiscoverShelf />
+          </Suspense>
+          <Suspense
+            fallback={<SpotlightShelfSkeleton title="Friends' Recent Logs" />}
+          >
+            <FriendsLogsShelf signedIn={signedIn} />
+          </Suspense>
         </div>
-        <Suspense fallback={<SpotlightFallback />}>
-          <SpotlightGrid />
-        </Suspense>
-      </section>
+      </div>
     </div>
   );
 }

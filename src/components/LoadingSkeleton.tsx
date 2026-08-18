@@ -62,9 +62,10 @@ export function CategoryPageSkeleton({
 
 export function HomePageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="space-y-4">
         <div className="h-9 w-80 max-w-full animate-pulse rounded bg-zinc-800" />
+        <div className="h-4 w-96 max-w-full animate-pulse rounded bg-zinc-800/70" />
         <div className="flex flex-wrap gap-2">
           {MEDIA_TYPES.map((type) => (
             <div
@@ -75,19 +76,42 @@ export function HomePageSkeleton() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="h-6 w-40 animate-pulse rounded bg-zinc-800" />
-        <div className="h-40 animate-pulse border border-white/10 bg-zinc-900/40" />
-      </section>
-
-      <section className="space-y-4">
-        <div className="h-6 w-52 animate-pulse rounded bg-zinc-800" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-          {Array.from({ length: 5 }, (_, i) => (
-            <MediaCardSkeleton key={i} />
-          ))}
+      <div className="mt-10 grid items-start gap-10 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <div className="space-y-3">
+          <div className="h-6 w-36 animate-pulse rounded bg-zinc-800" />
+          <div className="overflow-hidden rounded-xl border border-white/10">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 border-b border-white/[0.06] px-4 py-3.5 last:border-b-0"
+              >
+                <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-zinc-800" />
+                <div className="min-w-0 flex-1 space-y-2 py-0.5">
+                  <div className="h-3.5 w-[85%] animate-pulse rounded bg-zinc-800" />
+                  <div className="h-3 w-40 animate-pulse rounded bg-zinc-800/70" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </section>
+
+        <div className="space-y-10">
+          {["Popular This Week", "Discover", "Friends' Recent Logs"].map(
+            (title) => (
+              <section key={title} className="space-y-3">
+                <div className="h-6 w-48 animate-pulse rounded bg-zinc-800" />
+                <div className="flex gap-3 overflow-hidden">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <div key={i} className="w-36 shrink-0">
+                      <MediaCardSkeleton />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )
+          )}
+        </div>
+      </div>
     </div>
   );
 }

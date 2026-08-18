@@ -1,5 +1,6 @@
 import { tmdbPoster, yearFromDate } from "@/lib/media";
 import { getMediaDetails } from "@/lib/providers/details";
+import { isoDate, recentReleaseWindow } from "@/lib/release-window";
 import type { UnifiedMediaItem } from "@/lib/types";
 
 interface TmdbListItem {
@@ -75,6 +76,85 @@ export async function getTrendingTv(): Promise<UnifiedMediaItem[]> {
   }));
 
   return withDetailCreators(items);
+}
+
+function mapTmdbList(
+  results: TmdbListItem[] | undefined,
+  mediaType: "movie" | "tv",
+  limit = 20
+): UnifiedMediaItem[] {
+  return (results ?? []).slice(0, limit).map((item) => ({
+    id: String(item.id),
+    title: (mediaType === "movie" ? item.title : item.name) ?? "Untitled",
+    creator: "—",
+    year: yearFromDate(
+      mediaType === "movie" ? item.release_date : item.first_air_date
+    ),
+    thumbnail: tmdbPoster(item.poster_path),
+    mediaType,
+  }));
+}
+
+async function discoverTmdb(
+  path: "movie" | "tv",
+  dateParams: Record<string, string>
+): Promise<UnifiedMediaItem[]> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
+
+  const url = new URL(`https://api.themoviedb.org/3/discover/${path}`);
+  url.searchParams.set("api_key", apiKey);
+  url.searchParams.set("sort_by", "popularity.desc");
+  url.searchParams.set("include_adult", "false");
+  url.searchParams.set("page", "1");
+  for (const [key, value] of Object.entries(dateParams)) {
+    url.searchParams.set(key, value);
+  }
+
+  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  if (!res.ok) {
+    throw new Error(`TMDB discover ${path} failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as TmdbListResponse;
+  return mapTmdbList(data.results, path);
+}
+
+export async function getTmdbRecommendations(
+  mediaType: "movie" | "tv",
+  id: string
+): Promise<UnifiedMediaItem[]> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
+
+  const url = new URL(
+    `https://api.themoviedb.org/3/${mediaType}/${encodeURIComponent(id)}/recommendations`
+  );
+  url.searchParams.set("api_key", apiKey);
+
+  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as TmdbListResponse;
+  return mapTmdbList(data.results, mediaType, 10);
+}
+
+/** Recent theatrical releases, ranked by TMDB popularity. */
+export async function getPopularNewMovies(): Promise<UnifiedMediaItem[]> {
+  const { from, to } = recentReleaseWindow(3);
+  return discoverTmdb("movie", {
+    "primary_release_date.gte": isoDate(from),
+    "primary_release_date.lte": isoDate(to),
+  });
+}
+
+/** Recent TV premieres, ranked by TMDB popularity. */
+export async function getPopularNewTv(): Promise<UnifiedMediaItem[]> {
+  const { from, to } = recentReleaseWindow(3);
+  return discoverTmdb("tv", {
+    "first_air_date.gte": isoDate(from),
+    "first_air_date.lte": isoDate(to),
+  });
 }
 
 export async function getPopularMovies(): Promise<UnifiedMediaItem[]> {

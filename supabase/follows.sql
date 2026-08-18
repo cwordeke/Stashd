@@ -17,6 +17,21 @@ CREATE INDEX IF NOT EXISTS follows_following_id_idx
 CREATE INDEX IF NOT EXISTS follows_follower_id_idx
   ON public.follows (follower_id);
 
+-- Extra FKs onto profiles so PostgREST can embed usernames in one round-trip.
+DO $$ BEGIN
+  ALTER TABLE public.follows
+    ADD CONSTRAINT follows_follower_profile_fkey
+    FOREIGN KEY (follower_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.follows
+    ADD CONSTRAINT follows_following_profile_fkey
+    FOREIGN KEY (following_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- Username lookup: leading-wildcard ILIKE needs trigram, not btree.
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS profiles_username_trgm_idx

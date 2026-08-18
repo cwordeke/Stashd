@@ -231,3 +231,37 @@ export async function getTrendingMusic(): Promise<UnifiedMediaItem[]> {
 export async function getPopularMusic(): Promise<UnifiedMediaItem[]> {
   return getTrendingMusic();
 }
+
+export async function getNewMusic(): Promise<UnifiedMediaItem[]> {
+  const token = await getSpotifyAccessToken();
+  const target = 20;
+
+  const pages = await Promise.all(
+    [0, 10].map(async (offset) => {
+      const url = new URL("https://api.spotify.com/v1/search");
+      url.searchParams.set("q", "tag:new");
+      url.searchParams.set("type", "album");
+      url.searchParams.set("limit", String(SEARCH_PAGE_SIZE));
+      url.searchParams.set("offset", String(offset));
+      url.searchParams.set("market", "US");
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+        next: { revalidate: 86400 },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Spotify new albums failed: ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        albums?: { items?: SpotifyAlbum[] };
+      };
+      return data.albums?.items ?? [];
+    })
+  );
+
+  const candidates = filterAlbumCandidates(pages.flat());
+  const deduped = await dedupePreferExplicit(candidates, token);
+  return deduped.slice(0, target).map(toMusicItem);
+}
