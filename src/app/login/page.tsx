@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import BrandMark from "@/components/BrandMark";
 import { createClient } from "@/utils/supabase/client";
 
 function LoginForm() {
@@ -39,7 +40,7 @@ function LoginForm() {
           href="/"
           className="text-[17px] font-bold tracking-[-0.035em] text-white"
         >
-          Stashd
+          <BrandMark />
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight text-white">
           Sign in to continue

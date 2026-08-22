@@ -3,6 +3,7 @@
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
 import { claimUsername } from "@/app/actions/profile";
 
 export default function OnboardingPage() {
@@ -35,7 +36,7 @@ export default function OnboardingPage() {
             href="/"
             className="text-[17px] font-bold tracking-[-0.035em] text-white"
           >
-            Stashd
+            <BrandMark />
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight text-white">
             Claim your username
