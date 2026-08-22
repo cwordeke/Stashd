@@ -38,9 +38,9 @@ function LoginForm() {
       <div className="mb-8 space-y-2 text-center">
         <Link
           href="/"
-          className="text-[17px] font-bold tracking-[-0.035em] text-white"
+          className="inline-flex justify-center text-[17px] font-bold tracking-[-0.035em] text-white"
         >
-          <BrandMark />
+          <BrandMark stacked size={96} priority />
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight text-white">
           Sign in to continue

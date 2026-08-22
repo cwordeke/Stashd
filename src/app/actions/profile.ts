@@ -140,6 +140,130 @@ export async function updateProfileBio(
 
   revalidatePath(`/u/${profile.username}`);
   revalidatePath("/profile");
+  revalidatePath("/settings");
 
   return { ok: true, profile, message: "Bio saved" };
+}
+
+const AVATAR_BUCKET = "avatars";
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+function avatarExtension(mimeType: string): string {
+  switch (mimeType) {
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    case "image/jpeg":
+    default:
+      return "jpg";
+  }
+}
+
+export async function updateProfileAvatar(
+  formData: FormData
+): Promise<ProfileActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "Sign in to update your profile picture" };
+  }
+
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Choose an image to upload" };
+  }
+
+  if (!AVATAR_MIME_TYPES.has(file.type)) {
+    return {
+      ok: false,
+      message: "Use a JPEG, PNG, WebP, or GIF image",
+    };
+  }
+
+  if (file.size > AVATAR_MAX_BYTES) {
+    return { ok: false, message: "Image must be 5 MB or smaller" };
+  }
+
+  const ext = avatarExtension(file.type);
+  const objectPath = `${user.id}/avatar.${ext}`;
+
+  const { data: existing } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .list(user.id);
+
+  const stalePaths =
+    existing
+      ?.filter((item) => item.name !== `avatar.${ext}`)
+      .map((item) => `${user.id}/${item.name}`) ?? [];
+
+  const { error: uploadError } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(objectPath, file, {
+      upsert: true,
+      contentType: file.type,
+      cacheControl: "3600",
+    });
+
+  if (uploadError) {
+    return {
+      ok: false,
+      message: uploadError.message.includes("Bucket not found")
+        ? `${uploadError.message} — run supabase/avatars_storage.sql in Supabase.`
+        : uploadError.message,
+    };
+  }
+
+  if (stalePaths.length > 0) {
+    await supabase.storage.from(AVATAR_BUCKET).remove(stalePaths);
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(objectPath);
+
+  // Bust CDN / browser caches when replacing the same path.
+  const avatarUrl = `${publicUrl}?v=${Date.now()}`;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", user.id)
+    .select("id, username, avatar_url, bio")
+    .single();
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  await supabase.auth.updateUser({
+    data: { avatar_url: avatarUrl },
+  });
+
+  const profile = rowToProfile(
+    data as {
+      id: string;
+      username: string;
+      avatar_url: string | null;
+      bio: string | null;
+    }
+  );
+
+  revalidatePath(`/u/${profile.username}`);
+  revalidatePath("/profile");
+  revalidatePath("/settings");
+  revalidatePath("/");
+
+  return { ok: true, profile, message: "Profile picture updated" };
 }

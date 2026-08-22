@@ -8,6 +8,8 @@
 
 html {
   scroll-behavior: smooth;
+  /* Keep page width stable when tab content changes scrollbar presence */
+  scrollbar-gutter: stable;
 }
 
 body {

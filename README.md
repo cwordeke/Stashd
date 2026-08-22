@@ -18,6 +18,7 @@ Fill API keys in `.env.local` (see `.env.example`). Open Library needs no key. W
 2. Enable Google OAuth and add redirect URL `http://localhost:3000/auth/callback`.
 3. First login sends users to `/onboarding` to claim a username.
 4. Profiles live at `/u/[username]`. Ensure `profiles` is publicly readable (SELECT) so guests can view stashes.
+5. For custom profile pictures, run `supabase/avatars_storage.sql` in the Supabase SQL editor.
 
 ## App structure
 

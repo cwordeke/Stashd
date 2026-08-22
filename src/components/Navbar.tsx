@@ -194,10 +194,12 @@ function AccountMenu({
   onProfile: boolean;
 }) {
   const router = useRouter();
-  const { beginNavigation } = useNavigationPending();
+  const { beginNavigation, displayPath } = useNavigationPending();
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const onSettings =
+    displayPath === "/settings" || displayPath.startsWith("/settings/");
 
   const label = user.username
     ? user.username
@@ -225,7 +227,7 @@ function AccountMenu({
         className={cn(
           "flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-200 transition-colors",
           "hover:bg-white/[0.05]",
-          (open || onProfile) && "bg-white/[0.05]"
+          (open || onProfile || onSettings) && "bg-white/[0.05]"
         )}
       >
         <UserAvatar user={user} />
@@ -256,6 +258,15 @@ function AccountMenu({
               )}
             >
               Profile
+            </NavLink>
+            <NavLink
+              href="/settings"
+              className={cn(
+                "block px-3 py-2 text-[13px] text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white",
+                onSettings && "bg-white/[0.06] text-white"
+              )}
+            >
+              Settings
             </NavLink>
             <button
               type="button"

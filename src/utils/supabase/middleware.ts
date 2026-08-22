@@ -51,7 +51,9 @@ export async function updateSession(request: NextRequest) {
     pathname === "/login" ||
     pathname === "/onboarding" ||
     pathname === "/profile" ||
-    pathname.startsWith("/profile/");
+    pathname.startsWith("/profile/") ||
+    pathname === "/settings" ||
+    pathname.startsWith("/settings/");
 
   if (!user && pathname.startsWith("/onboarding")) {
     const loginUrl = request.nextUrl.clone();
@@ -60,7 +62,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (!user && (pathname === "/profile" || pathname.startsWith("/profile/"))) {
+  if (
+    !user &&
+    (pathname === "/profile" ||
+      pathname.startsWith("/profile/") ||
+      pathname === "/settings" ||
+      pathname.startsWith("/settings/"))
+  ) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);

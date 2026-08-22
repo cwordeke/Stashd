@@ -34,6 +34,24 @@ export function PendingRouteView() {
     return <ProfilePageSkeleton />;
   }
 
+  if (pendingHref === "/settings" || pendingHref.startsWith("/settings/")) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+        <div className="space-y-2">
+          <div className="h-4 w-28 animate-pulse rounded bg-zinc-800" />
+          <div className="h-8 w-40 animate-pulse rounded bg-zinc-800" />
+          <div className="h-4 w-64 animate-pulse rounded bg-zinc-800" />
+        </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-36 animate-pulse border border-white/10 bg-zinc-900/50"
+          />
+        ))}
+      </div>
+    );
+  }
+
   if (pendingHref.startsWith("/search")) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
