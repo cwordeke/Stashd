@@ -186,19 +186,23 @@ export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
 }
 
 /** Spotify search max `limit` is 10 (Feb 2026); paginate to fill the grid. */
-const TRENDING_MUSIC_TARGET = 20;
 const SEARCH_PAGE_SIZE = 10;
-/** Parallel page offsets — enough headroom after album-type + Latin-script filters. */
-const TRENDING_PAGE_OFFSETS = [0, 10, 20, 30, 40];
 
-export async function getTrendingMusic(): Promise<UnifiedMediaItem[]> {
+export async function getTrendingMusic(
+  limit = 20
+): Promise<UnifiedMediaItem[]> {
   const token = await getSpotifyAccessToken();
   const year = new Date().getFullYear();
+  const pageCount = Math.max(5, Math.ceil((limit * 2.5) / SEARCH_PAGE_SIZE));
+  const offsets = Array.from(
+    { length: pageCount },
+    (_, index) => index * SEARCH_PAGE_SIZE
+  );
 
   // year:YYYY + US market ranks major popular releases for English-speaking listeners
   // better than tag:new, which skews toward obscure international catalog adds.
   const pages = await Promise.all(
-    TRENDING_PAGE_OFFSETS.map(async (offset) => {
+    offsets.map(async (offset) => {
       const url = new URL("https://api.spotify.com/v1/search");
       url.searchParams.set("q", `year:${year}`);
       url.searchParams.set("type", "album");
@@ -225,7 +229,7 @@ export async function getTrendingMusic(): Promise<UnifiedMediaItem[]> {
 
   const candidates = filterAlbumCandidates(pages.flat());
   const deduped = await dedupePreferExplicit(candidates, token);
-  return deduped.slice(0, TRENDING_MUSIC_TARGET).map(toMusicItem);
+  return deduped.slice(0, limit).map(toMusicItem);
 }
 
 export async function getPopularMusic(): Promise<UnifiedMediaItem[]> {

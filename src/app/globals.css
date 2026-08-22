@@ -58,3 +58,35 @@ main {
     transition: none;
   }
 }
+
+/*
+ * First page of a category grid: 4 full rows at every breakpoint.
+ * Matches `grid-cols-2 sm:3 md:4 lg:5 xl:6`. Load more drops this class.
+ */
+.media-grid-preview > :nth-child(n + 25) {
+  display: none;
+}
+
+@media (max-width: 1279px) {
+  .media-grid-preview > :nth-child(n + 21) {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .media-grid-preview > :nth-child(n + 17) {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .media-grid-preview > :nth-child(n + 13) {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .media-grid-preview > :nth-child(n + 9) {
+    display: none;
+  }
+}

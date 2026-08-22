@@ -32,50 +32,66 @@ async function withDetailCreators(
   );
 }
 
-export async function getTrendingMovies(): Promise<UnifiedMediaItem[]> {
+async function getTmdbTrending(
+  mediaType: "movie" | "tv",
+  limit: number
+): Promise<UnifiedMediaItem[]> {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
 
-  const url = new URL("https://api.themoviedb.org/3/trending/movie/week");
-  url.searchParams.set("api_key", apiKey);
+  const pageCount = Math.max(1, Math.ceil(limit / 20));
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, async (_, index) => {
+      const url = new URL(
+        `https://api.themoviedb.org/3/trending/${mediaType}/week`
+      );
+      url.searchParams.set("api_key", apiKey);
+      url.searchParams.set("page", String(index + 1));
 
-  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
-  if (!res.ok) throw new Error(`TMDB trending movies failed: ${res.status}`);
+      const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+      if (!res.ok) {
+        throw new Error(`TMDB trending ${mediaType} failed: ${res.status}`);
+      }
 
-  const data = (await res.json()) as TmdbListResponse;
-  const items = (data.results ?? []).slice(0, 20).map((item) => ({
-    id: String(item.id),
-    title: item.title ?? "Untitled",
-    creator: "—",
-    year: yearFromDate(item.release_date),
-    thumbnail: tmdbPoster(item.poster_path),
-    mediaType: "movie" as const,
-  }));
+      return (await res.json()) as TmdbListResponse;
+    })
+  );
+
+  const seen = new Set<string>();
+  const items: UnifiedMediaItem[] = [];
+
+  for (const data of pages) {
+    for (const item of data.results ?? []) {
+      const id = String(item.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      items.push({
+        id,
+        title:
+          (mediaType === "movie" ? item.title : item.name) ?? "Untitled",
+        creator: "—",
+        year: yearFromDate(
+          mediaType === "movie" ? item.release_date : item.first_air_date
+        ),
+        thumbnail: tmdbPoster(item.poster_path),
+        mediaType,
+      });
+      if (items.length >= limit) break;
+    }
+    if (items.length >= limit) break;
+  }
 
   return withDetailCreators(items);
 }
 
-export async function getTrendingTv(): Promise<UnifiedMediaItem[]> {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
+export async function getTrendingMovies(
+  limit = 20
+): Promise<UnifiedMediaItem[]> {
+  return getTmdbTrending("movie", limit);
+}
 
-  const url = new URL("https://api.themoviedb.org/3/trending/tv/week");
-  url.searchParams.set("api_key", apiKey);
-
-  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
-  if (!res.ok) throw new Error(`TMDB trending TV failed: ${res.status}`);
-
-  const data = (await res.json()) as TmdbListResponse;
-  const items = (data.results ?? []).slice(0, 20).map((item) => ({
-    id: String(item.id),
-    title: item.name ?? "Untitled",
-    creator: "—",
-    year: yearFromDate(item.first_air_date),
-    thumbnail: tmdbPoster(item.poster_path),
-    mediaType: "tv" as const,
-  }));
-
-  return withDetailCreators(items);
+export async function getTrendingTv(limit = 20): Promise<UnifiedMediaItem[]> {
+  return getTmdbTrending("tv", limit);
 }
 
 function mapTmdbList(

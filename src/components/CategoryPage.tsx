@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { CATEGORY_META } from "@/lib/constants";
+import { CATEGORY_META, CATEGORY_TRENDING_LIMIT } from "@/lib/constants";
 import { getTrendingForType } from "@/lib/trending";
 import type { MediaType } from "@/lib/types";
 import MediaGrid from "@/components/MediaGrid";
@@ -10,7 +10,10 @@ interface CategoryPageProps {
 }
 
 async function CategoryResults({ type }: { type: MediaType }) {
-  const { results, source } = await getTrendingForType(type);
+  const { results, source } = await getTrendingForType(
+    type,
+    CATEGORY_TRENDING_LIMIT
+  );
 
   return (
     <div className="space-y-4">

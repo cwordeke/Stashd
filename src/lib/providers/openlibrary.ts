@@ -54,7 +54,9 @@ interface OpenLibraryTrendingResponse {
   docs?: OpenLibraryDoc[];
 }
 
-export async function getTrendingBooks(): Promise<UnifiedMediaItem[]> {
+export async function getTrendingBooks(
+  limit = 20
+): Promise<UnifiedMediaItem[]> {
   const url = "https://openlibrary.org/trending/weekly.json";
   const res = await fetch(url, { next: { revalidate: 86400 } });
 
@@ -66,7 +68,7 @@ export async function getTrendingBooks(): Promise<UnifiedMediaItem[]> {
   const works = data.works ?? [];
 
   if (works.length) {
-    return works.slice(0, 20).map((work, index) => ({
+    return works.slice(0, limit).map((work, index) => ({
       id: work.key ?? `book-${index}`,
       title: work.title ?? "Untitled",
       creator: work.author_name?.[0] ?? work.author_names?.[0] ?? "—",
@@ -77,14 +79,16 @@ export async function getTrendingBooks(): Promise<UnifiedMediaItem[]> {
   }
 
   // Fallback if trending payload shape differs
-  return getPopularBooks();
+  return getPopularBooks(limit);
 }
 
-export async function getPopularBooks(): Promise<UnifiedMediaItem[]> {
+export async function getPopularBooks(
+  limit = 20
+): Promise<UnifiedMediaItem[]> {
   const url = new URL("https://openlibrary.org/search.json");
   url.searchParams.set("q", "subject:fiction");
   url.searchParams.set("sort", "already_read");
-  url.searchParams.set("limit", "20");
+  url.searchParams.set("limit", String(limit));
   url.searchParams.set(
     "fields",
     "key,title,author_name,first_publish_year,cover_i"

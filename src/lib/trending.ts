@@ -9,26 +9,27 @@ import { getPlaceholderResults } from "@/lib/popular";
 export type TrendingSource = "live" | "placeholder";
 
 async function fetchTrendingForType(
-  type: MediaType
+  type: MediaType,
+  limit: number
 ): Promise<{ results: UnifiedMediaItem[]; source: TrendingSource }> {
   try {
     let results: UnifiedMediaItem[] = [];
 
     switch (type) {
       case "movie":
-        results = await getTrendingMovies();
+        results = await getTrendingMovies(limit);
         break;
       case "tv":
-        results = await getTrendingTv();
+        results = await getTrendingTv(limit);
         break;
       case "game":
-        results = await getTrendingGames();
+        results = await getTrendingGames(limit);
         break;
       case "book":
-        results = await getTrendingBooks();
+        results = await getTrendingBooks(limit);
         break;
       case "music":
-        results = await getTrendingMusic();
+        results = await getTrendingMusic(limit);
         break;
     }
 
@@ -43,13 +44,14 @@ async function fetchTrendingForType(
 }
 
 const getCachedTrending = unstable_cache(
-  async (type: MediaType) => fetchTrendingForType(type),
-  ["trending-by-type-v3-music-albums"],
+  async (type: MediaType, limit: number) => fetchTrendingForType(type, limit),
+  ["trending-by-type-v4-paged-grid"],
   { revalidate: 86400 }
 );
 
 export async function getTrendingForType(
-  type: MediaType
+  type: MediaType,
+  limit = 20
 ): Promise<{ results: UnifiedMediaItem[]; source: TrendingSource }> {
-  return getCachedTrending(type);
+  return getCachedTrending(type, limit);
 }

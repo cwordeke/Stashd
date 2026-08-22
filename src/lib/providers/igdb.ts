@@ -72,12 +72,14 @@ export async function searchGames(query: string): Promise<UnifiedMediaItem[]> {
   return mapGames(await igdbQuery(body, 120));
 }
 
-export async function getTrendingGames(): Promise<UnifiedMediaItem[]> {
+export async function getTrendingGames(
+  limit = 20
+): Promise<UnifiedMediaItem[]> {
   const body = [
     "where rating_count > 50 & version_parent = null & cover != null;",
     "sort rating_count desc;",
     FIELDS,
-    "limit 20;",
+    `limit ${Math.max(1, Math.min(limit, 100))};`,
   ].join(" ");
 
   return mapGames(await igdbQuery(body, 86400));
