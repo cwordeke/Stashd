@@ -13,6 +13,7 @@ import { ProfileIdentityHeader } from "@/components/FollowButton";
 import ProfileBio from "@/components/ProfileBio";
 import ProfileDiaryTab from "@/components/ProfileDiaryTab";
 import ProfileListsTab from "@/components/ProfileListsTab";
+import ProfileRecentlyLogged from "@/components/ProfileRecentlyLogged";
 import ProfileStashTab from "@/components/ProfileStashTab";
 import ProfileStats, {
   type ProfileSocialStats,
@@ -250,20 +251,27 @@ export default function PublicProfileView({
           {/* Shared panel shell so every tab owns the same width / baseline height */}
           <div className="w-full min-h-[32rem] sm:min-h-[36rem]">
             {tab === "top4" ? (
-              <section className="grid w-full grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
-                {GRID_TYPES.map((type) => (
+              <section className="w-full space-y-8">
+                <div className="grid w-full grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
+                  {GRID_TYPES.map((type) => (
+                    <Top4Shelf
+                      key={type}
+                      type={type}
+                      items={displayShelves[type]}
+                      editable={isOwner}
+                    />
+                  ))}
+                </div>
+
+                <div className="mx-auto w-full md:max-w-[calc(50%-1rem)]">
                   <Top4Shelf
-                    key={type}
-                    type={type}
-                    items={displayShelves[type]}
+                    type="music"
+                    items={displayShelves.music}
                     editable={isOwner}
                   />
-                ))}
-                <Top4Shelf
-                  type="music"
-                  items={displayShelves.music}
-                  editable={isOwner}
-                />
+                </div>
+
+                <ProfileRecentlyLogged entries={diaryEntries} />
               </section>
             ) : null}
 
