@@ -40,6 +40,34 @@ main {
   background: rgba(16, 185, 129, 0.35);
 }
 
+/* Make interactive controls show the hand cursor */
+a[href],
+button:not(:disabled),
+summary,
+label,
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="file"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="link"],
+[role="tab"]:not([aria-disabled="true"]),
+[role="menuitem"],
+[role="option"],
+[role="switch"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* Profile stash posters — base; tilt is driven by mouse in StashPosterTilt */
 .stash-poster-scene {
   perspective: 900px;

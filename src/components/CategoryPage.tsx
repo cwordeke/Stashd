@@ -39,7 +39,6 @@ export default function CategoryPage({ type }: CategoryPageProps) {
         <h1 className="text-3xl font-semibold tracking-tight text-white">
           {meta.popularHeading}
         </h1>
-        <p className="max-w-2xl text-sm text-zinc-400">{meta.description}</p>
       </header>
 
       <Suspense fallback={<MediaGridSkeleton />}>

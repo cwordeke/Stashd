@@ -14,7 +14,7 @@ export const PROFILE_TAB_LABELS: Record<ProfileTab, string> = {
   top4: "Top 4",
   stash: "Stash",
   diary: "Diary",
-  watchlist: "Watchlist",
+  watchlist: "Saved",
   lists: "Lists",
 };
 

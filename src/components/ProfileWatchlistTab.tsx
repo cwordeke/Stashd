@@ -13,11 +13,11 @@ export default function ProfileWatchlistTab({
   if (!items.length) {
     return (
       <div className="border border-dashed border-white/10 px-6 py-16 text-center">
-        <p className="text-sm font-medium text-zinc-200">Watchlist coming soon</p>
+        <p className="text-sm font-medium text-zinc-200">Nothing saved yet</p>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
           Bookmarked movies, shows, games, books, and albums from your lists will
-          land here. Add items to a watchlist, backlog, reading list, or queue on
-          any media page.
+          land here. Add items to a list, backlog, reading list, or queue on any
+          media page.
         </p>
         <div className="mx-auto mt-8 grid max-w-lg grid-cols-4 gap-2 opacity-40">
           {Array.from({ length: 4 }, (_, i) => (

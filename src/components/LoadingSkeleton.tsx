@@ -44,13 +44,11 @@ export function CategoryPageSkeleton({
             <h1 className="text-3xl font-semibold tracking-tight text-white">
               {meta.popularHeading}
             </h1>
-            <p className="max-w-2xl text-sm text-zinc-400">{meta.description}</p>
           </>
         ) : (
           <div className="space-y-3">
             <div className="h-3 w-20 animate-pulse rounded bg-zinc-800" />
             <div className="h-8 w-64 max-w-full animate-pulse rounded bg-zinc-800" />
-            <div className="h-4 w-96 max-w-full animate-pulse rounded bg-zinc-800/70" />
             <p className="sr-only">{title}</p>
           </div>
         )}

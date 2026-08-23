@@ -211,9 +211,9 @@ export default function LogMediaModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-zinc-400">Rating</span>
-              <span className="text-xs text-zinc-500">
-                {rating != null ? `${rating} / 5` : "Optional"}
-              </span>
+              {rating != null ? (
+                <span className="text-xs text-zinc-500">{rating} / 5</span>
+              ) : null}
             </div>
             <div
               className="flex items-center gap-0.5"
@@ -279,7 +279,7 @@ export default function LogMediaModal({
 
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-zinc-400">
-              Review <span className="text-zinc-600">(optional)</span>
+              Review
             </span>
             <textarea
               value={review}
