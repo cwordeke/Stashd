@@ -94,21 +94,40 @@ export async function getTrendingTv(limit = 20): Promise<UnifiedMediaItem[]> {
   return getTmdbTrending("tv", limit);
 }
 
+/** Map a TMDB movie payload onto Stashd’s shared media shape. */
+export function normalizeTmdbMovie(item: {
+  id: number;
+  title?: string;
+  release_date?: string;
+  poster_path?: string | null;
+}): UnifiedMediaItem {
+  return {
+    id: String(item.id),
+    title: item.title ?? "Untitled",
+    creator: "—",
+    year: yearFromDate(item.release_date),
+    thumbnail: tmdbPoster(item.poster_path),
+    mediaType: "movie",
+  };
+}
+
 function mapTmdbList(
   results: TmdbListItem[] | undefined,
   mediaType: "movie" | "tv",
   limit = 20
 ): UnifiedMediaItem[] {
-  return (results ?? []).slice(0, limit).map((item) => ({
-    id: String(item.id),
-    title: (mediaType === "movie" ? item.title : item.name) ?? "Untitled",
-    creator: "—",
-    year: yearFromDate(
-      mediaType === "movie" ? item.release_date : item.first_air_date
-    ),
-    thumbnail: tmdbPoster(item.poster_path),
-    mediaType,
-  }));
+  return (results ?? []).slice(0, limit).map((item) =>
+    mediaType === "movie"
+      ? normalizeTmdbMovie(item)
+      : {
+          id: String(item.id),
+          title: item.name ?? "Untitled",
+          creator: "—",
+          year: yearFromDate(item.first_air_date),
+          thumbnail: tmdbPoster(item.poster_path),
+          mediaType,
+        }
+  );
 }
 
 async function discoverTmdb(
@@ -211,14 +230,7 @@ export async function searchTmdb(query: string) {
 
   for (const item of data.results ?? []) {
     if (item.media_type === "movie") {
-      movies.push({
-        id: String(item.id),
-        title: item.title ?? "Untitled",
-        creator: "—",
-        year: yearFromDate(item.release_date),
-        thumbnail: tmdbPoster(item.poster_path),
-        mediaType: "movie",
-      });
+      movies.push(normalizeTmdbMovie(item));
     } else if (item.media_type === "tv") {
       tv.push({
         id: String(item.id),
@@ -237,4 +249,57 @@ export async function searchTmdb(query: string) {
   ]);
 
   return { movies: enrichedMovies, tv: enrichedTv };
+}
+
+function fourDigitYear(year?: string): string | null {
+  if (!year) return null;
+  const match = year.trim().match(/^(\d{4})$/);
+  return match?.[1] ?? null;
+}
+
+async function searchTmdbMovieOnce(
+  apiKey: string,
+  query: string,
+  year: string | null
+): Promise<UnifiedMediaItem | null> {
+  const url = new URL("https://api.themoviedb.org/3/search/movie");
+  url.searchParams.set("api_key", apiKey);
+  url.searchParams.set("query", query);
+  url.searchParams.set("include_adult", "false");
+  url.searchParams.set("page", "1");
+  if (year) url.searchParams.set("year", year);
+
+  let res = await fetch(url.toString(), { cache: "no-store" });
+  if (res.status === 429) {
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    res = await fetch(url.toString(), { cache: "no-store" });
+  }
+  if (!res.ok) {
+    throw new Error(`TMDB search failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as TmdbListResponse;
+  const top = data.results?.[0];
+  return top ? normalizeTmdbMovie(top) : null;
+}
+
+/**
+ * Best-effort title/year match for imports. Uses `/search/movie` and the top
+ * result only — no per-hit detail fetches (those would trip TMDB rate limits).
+ */
+export async function searchTmdbMovie(
+  query: string,
+  year?: string
+): Promise<UnifiedMediaItem | null> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
+
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+
+  const yearParam = fourDigitYear(year);
+  const match = await searchTmdbMovieOnce(apiKey, trimmed, yearParam);
+  if (match || !yearParam) return match;
+
+  return searchTmdbMovieOnce(apiKey, trimmed, null);
 }

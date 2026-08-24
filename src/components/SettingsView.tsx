@@ -13,6 +13,7 @@ import {
   updateProfileAvatar,
   updateProfileBio,
 } from "@/app/actions/profile";
+import ImportHub from "@/components/ImportHub";
 import NavLink from "@/components/NavLink";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
 import { profilePath } from "@/lib/auth";
@@ -494,14 +495,18 @@ export default function SettingsView({
           ) : null}
 
           {group === "data" ? (
-            <section className="border border-white/10 bg-zinc-900/50">
-              <div className="border-b border-white/[0.06] px-4 py-3 sm:px-5">
+            <div className="space-y-4">
+              <div>
                 <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
-                  Data
+                  Import
                 </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Migrate your history from other platforms. Start with
+                  Letterboxd — more integrations are on the way.
+                </p>
               </div>
-              <div className="min-h-40 px-4 py-5 sm:px-5" />
-            </section>
+              <ImportHub />
+            </div>
           ) : null}
         </div>
       </div>
