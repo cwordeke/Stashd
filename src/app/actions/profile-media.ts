@@ -390,13 +390,39 @@ export async function getStashTabItems(
   });
 }
 
+export async function getDiaryLogStats(userId: string): Promise<{
+  totalLogs: number;
+  logsThisYear: number;
+}> {
+  const supabase = await createClient();
+  const yearPrefix = `${new Date().getFullYear()}-`;
+
+  const { data, error } = await supabase
+    .from("diary_entries")
+    .select("watched_on")
+    .eq("user_id", userId);
+
+  if (error || !data) {
+    if (error) console.error("[getDiaryLogStats]", error.message);
+    return { totalLogs: 0, logsThisYear: 0 };
+  }
+
+  return {
+    totalLogs: data.length,
+    logsThisYear: data.filter((row) =>
+      String(row.watched_on ?? "").startsWith(yearPrefix)
+    ).length,
+  };
+}
+
 export async function getDiaryEntriesByUserId(
-  userId: string
+  userId: string,
+  limit?: number
 ): Promise<DiaryEntry[]> {
   const supabase = await createClient();
 
   // Prefer select without `creator` — that column is optional / often missing.
-  const primary = await supabase
+  let primary = supabase
     .from("diary_entries")
     .select(
       "id, media_id, media_type, title, image_url, release_year, rating, is_liked, is_rewatch, watched_on, created_at"
@@ -405,10 +431,16 @@ export async function getDiaryEntriesByUserId(
     .order("watched_on", { ascending: false })
     .order("created_at", { ascending: false });
 
+  if (limit != null) {
+    primary = primary.limit(limit);
+  }
+
+  const primaryRes = await primary;
+
   let rows: DiaryRow[] = [];
 
-  if (primary.error) {
-    const fallback = await supabase
+  if (primaryRes.error) {
+    let fallback = supabase
       .from("diary_entries")
       .select(
         "id, media_id, media_type, title, image_url, release_year, rating, is_liked, watched_on"
@@ -416,17 +448,23 @@ export async function getDiaryEntriesByUserId(
       .eq("user_id", userId)
       .order("watched_on", { ascending: false });
 
-    if (fallback.error || !fallback.data) {
+    if (limit != null) {
+      fallback = fallback.limit(limit);
+    }
+
+    const fallbackRes = await fallback;
+
+    if (fallbackRes.error || !fallbackRes.data) {
       console.error(
         "[getDiaryEntriesByUserId]",
-        fallback.error?.message ?? primary.error.message
+        fallbackRes.error?.message ?? primaryRes.error.message
       );
       return [];
     }
 
-    rows = fallback.data as unknown as DiaryRow[];
+    rows = fallbackRes.data as unknown as DiaryRow[];
   } else {
-    rows = (primary.data ?? []) as unknown as DiaryRow[];
+    rows = (primaryRes.data ?? []) as unknown as DiaryRow[];
   }
 
   const entries: DiaryEntry[] = rows
@@ -485,6 +523,13 @@ export async function getDiaryEntriesByUserId(
       thumbnail: entry.thumbnail ?? details.thumbnail,
     };
   });
+}
+
+export async function getRecentDiaryEntriesByUserId(
+  userId: string,
+  limit = 8
+): Promise<DiaryEntry[]> {
+  return getDiaryEntriesByUserId(userId, limit);
 }
 
 export async function getWatchlistByUserId(

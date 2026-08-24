@@ -7,8 +7,10 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useTransition,
 } from "react";
 import { usePathname } from "next/navigation";
+import { fetchProfileTabData } from "@/app/actions/profile-tabs";
 import { ProfileIdentityHeader } from "@/components/FollowButton";
 import ProfileBio from "@/components/ProfileBio";
 import ProfileDiaryTab from "@/components/ProfileDiaryTab";
@@ -34,7 +36,7 @@ import {
   type StashTabItem,
   type WatchlistItem,
 } from "@/lib/profile-tabs";
-import { type MediaType, type StashShelves } from "@/lib/types";
+import { emptyShelves, type MediaType, type StashShelves } from "@/lib/types";
 
 const GRID_TYPES: MediaType[] = ["movie", "tv", "game", "book"];
 
@@ -45,6 +47,7 @@ interface PublicProfileViewProps {
   shelves: StashShelves;
   stashItems: StashTabItem[];
   diaryEntries: DiaryEntry[];
+  recentDiary: DiaryEntry[];
   watchlistItems: WatchlistItem[];
   lists: ListSummary[];
   ratingStats: UserRatingStats;
@@ -54,17 +57,19 @@ interface PublicProfileViewProps {
   profileUserId: string;
   initialIsFollowing: boolean;
   initialTab?: ProfileTab;
+  initialLoadedTabs?: ProfileTab[];
 }
 
 export default function PublicProfileView({
   username,
   avatarUrl,
   bio,
-  shelves,
-  stashItems,
-  diaryEntries,
-  watchlistItems,
-  lists,
+  shelves: initialShelves,
+  stashItems: initialStashItems,
+  diaryEntries: initialDiaryEntries,
+  recentDiary: initialRecentDiary,
+  watchlistItems: initialWatchlistItems,
+  lists: initialLists,
   ratingStats,
   socialStats,
   isOwner,
@@ -72,10 +77,26 @@ export default function PublicProfileView({
   profileUserId,
   initialIsFollowing,
   initialTab = "top4",
+  initialLoadedTabs = [initialTab],
 }: PublicProfileViewProps) {
   const pathname = usePathname();
   const [tab, setTab] = useState<ProfileTab>(initialTab);
+  const [, startTransition] = useTransition();
   const { shelves: optimisticShelves } = useStash();
+
+  const [shelves, setShelves] = useState(initialShelves);
+  const [stashItems, setStashItems] = useState(initialStashItems);
+  const [diaryEntries, setDiaryEntries] = useState(initialDiaryEntries);
+  const [recentDiary, setRecentDiary] = useState(initialRecentDiary);
+  const [watchlistItems, setWatchlistItems] = useState(initialWatchlistItems);
+  const [lists, setLists] = useState(initialLists);
+  const [loadedTabs, setLoadedTabs] = useState<Set<ProfileTab>>(
+    () => new Set(initialLoadedTabs)
+  );
+  const loadedTabsRef = useRef(loadedTabs);
+  loadedTabsRef.current = loadedTabs;
+  const [loadingTab, setLoadingTab] = useState<ProfileTab | null>(null);
+
   const displayShelves = isOwner ? optimisticShelves : shelves;
 
   const listRef = useRef<HTMLUListElement>(null);
@@ -123,25 +144,56 @@ export default function PublicProfileView({
     setTab(initialTab);
   }, [initialTab]);
 
+  const ensureTabLoaded = useCallback(
+    async (id: ProfileTab) => {
+      if (loadedTabsRef.current.has(id)) return;
+
+      setLoadingTab(id);
+      try {
+        const payload = await fetchProfileTabData(profileUserId, id);
+        if (payload.shelves) setShelves(payload.shelves);
+        if (payload.recentDiary) setRecentDiary(payload.recentDiary);
+        if (payload.stashItems) setStashItems(payload.stashItems);
+        if (payload.diaryEntries) setDiaryEntries(payload.diaryEntries);
+        if (payload.watchlistItems) setWatchlistItems(payload.watchlistItems);
+        if (payload.lists) setLists(payload.lists);
+        setLoadedTabs((prev) => {
+          const next = new Set(prev).add(id);
+          loadedTabsRef.current = next;
+          return next;
+        });
+      } finally {
+        setLoadingTab(null);
+      }
+    },
+    [profileUserId]
+  );
+
   useEffect(() => {
     function onPopState() {
       const params = new URLSearchParams(window.location.search);
-      setTab(parseProfileTab(params.get("tab")));
+      const next = parseProfileTab(params.get("tab"));
+      setTab(next);
+      void ensureTabLoaded(next);
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [ensureTabLoaded]);
 
   function selectTab(id: ProfileTab) {
     if (id === tab) return;
     setTab(id);
     const href = id === "top4" ? pathname : `${pathname}?tab=${id}`;
     window.history.pushState({ tab: id }, "", href);
+    startTransition(() => {
+      void ensureTabLoaded(id);
+    });
   }
+
+  const showTabLoading = loadingTab === tab;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
-      {/* Identity — left-aligned, circular avatar */}
       <header className="flex items-start gap-4 sm:gap-5">
         {avatarUrl ? (
           <Image
@@ -170,7 +222,6 @@ export default function PublicProfileView({
         />
       </header>
 
-      {/* Tabs — centered under header */}
       <nav className="flex justify-center" aria-label="Profile sections">
         <ul
           ref={listRef}
@@ -218,7 +269,6 @@ export default function PublicProfileView({
         </ul>
       </nav>
 
-      {/* Body: sidebar + main */}
       <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
         <aside className="space-y-6 lg:border-r lg:border-zinc-800/80 lg:pr-6">
           <section>
@@ -248,16 +298,21 @@ export default function PublicProfileView({
         </aside>
 
         <div className="min-w-0 w-full">
-          {/* Shared panel shell so every tab owns the same width / baseline height */}
           <div className="w-full min-h-[32rem] sm:min-h-[36rem]">
-            {tab === "top4" ? (
+            {showTabLoading ? (
+              <div className="flex min-h-[16rem] items-center justify-center text-sm text-zinc-500">
+                Loading…
+              </div>
+            ) : null}
+
+            {!showTabLoading && tab === "top4" ? (
               <section className="w-full space-y-8">
                 <div className="grid w-full grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
                   {GRID_TYPES.map((type) => (
                     <Top4Shelf
                       key={type}
                       type={type}
-                      items={displayShelves[type]}
+                      items={displayShelves[type] ?? emptyShelves()[type]}
                       editable={isOwner}
                     />
                   ))}
@@ -271,26 +326,26 @@ export default function PublicProfileView({
                   />
                 </div>
 
-                <ProfileRecentlyLogged entries={diaryEntries} />
+                <ProfileRecentlyLogged entries={recentDiary} />
               </section>
             ) : null}
 
-            {tab === "stash" ? (
+            {!showTabLoading && tab === "stash" ? (
               <div className="w-full">
                 <ProfileStashTab items={stashItems} />
               </div>
             ) : null}
-            {tab === "diary" ? (
+            {!showTabLoading && tab === "diary" ? (
               <div className="w-full">
                 <ProfileDiaryTab entries={diaryEntries} />
               </div>
             ) : null}
-            {tab === "watchlist" ? (
+            {!showTabLoading && tab === "watchlist" ? (
               <div className="w-full">
                 <ProfileWatchlistTab items={watchlistItems} />
               </div>
             ) : null}
-            {tab === "lists" ? (
+            {!showTabLoading && tab === "lists" ? (
               <div className="w-full">
                 <ProfileListsTab
                   username={username}

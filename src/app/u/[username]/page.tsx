@@ -1,20 +1,16 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import PublicProfileView from "@/components/PublicProfileView";
-import { getListsByUserId } from "@/app/actions/lists";
-import {
-  getDiaryEntriesByUserId,
-  getStashTabItems,
-  getWatchlistByUserId,
-} from "@/app/actions/profile-media";
+import { fetchProfileTabData } from "@/app/actions/profile-tabs";
+import { getDiaryLogStats } from "@/app/actions/profile-media";
 import { getUserRatingStats } from "@/app/actions/ratings";
 import {
   checkIfFollowing,
   getProfileFollowStats,
 } from "@/app/actions/social";
-import { getStashShelvesByUserId } from "@/app/actions/stash";
 import { getProfileByUsername } from "@/lib/profile";
 import { parseProfileTab } from "@/lib/profile-tabs";
+import { emptyShelves } from "@/lib/types";
 import { createClient } from "@/utils/supabase/server";
 
 interface PublicProfilePageProps {
@@ -33,22 +29,6 @@ export async function generateMetadata({ params }: PublicProfilePageProps) {
   return {
     title: `${profile.username} · Stashd`,
     description: `Check out ${profile.username}'s stash on Stashd`,
-  };
-}
-
-function buildSocialStats(
-  diaryLoggedOn: string[],
-  followStats: { followers: number; following: number }
-) {
-  const year = new Date().getFullYear();
-  const yearPrefix = `${year}-`;
-
-  return {
-    totalLogs: diaryLoggedOn.length,
-    logsThisYear: diaryLoggedOn.filter((date) => date.startsWith(yearPrefix))
-      .length,
-    followers: followStats.followers,
-    following: followStats.following,
   };
 }
 
@@ -73,30 +53,24 @@ export default async function PublicProfilePage({
   const viewerId = auth.data.user?.id ?? null;
   const isOwner = viewerId === profile.id;
 
-  const [
-    shelves,
-    stashItems,
-    diaryEntries,
-    watchlistItems,
-    lists,
-    ratingStats,
-    followStats,
-    isFollowing,
-  ] = await Promise.all([
-    getStashShelvesByUserId(profile.id),
-    getStashTabItems(profile.id),
-    getDiaryEntriesByUserId(profile.id),
-    getWatchlistByUserId(profile.id),
-    getListsByUserId(profile.id, viewerId),
-    getUserRatingStats(profile.id),
-    getProfileFollowStats(profile.id),
-    viewerId && !isOwner ? checkIfFollowing(profile.id) : Promise.resolve(false),
-  ]);
+  // Always: sidebar stats. Tab content: only the active tab.
+  const [ratingStats, followStats, diaryLogStats, isFollowing, tabPayload] =
+    await Promise.all([
+      getUserRatingStats(profile.id),
+      getProfileFollowStats(profile.id),
+      getDiaryLogStats(profile.id),
+      viewerId && !isOwner
+        ? checkIfFollowing(profile.id)
+        : Promise.resolve(false),
+      fetchProfileTabData(profile.id, initialTab),
+    ]);
 
-  const socialStats = buildSocialStats(
-    diaryEntries.map((e) => e.loggedOn),
-    followStats
-  );
+  const socialStats = {
+    totalLogs: diaryLogStats.totalLogs,
+    logsThisYear: diaryLogStats.logsThisYear,
+    followers: followStats.followers,
+    following: followStats.following,
+  };
 
   return (
     <Suspense
@@ -110,11 +84,12 @@ export default async function PublicProfilePage({
         username={profile.username}
         avatarUrl={profile.avatarUrl}
         bio={profile.bio}
-        shelves={shelves}
-        stashItems={stashItems}
-        diaryEntries={diaryEntries}
-        watchlistItems={watchlistItems}
-        lists={lists}
+        shelves={tabPayload.shelves ?? emptyShelves()}
+        stashItems={tabPayload.stashItems ?? []}
+        diaryEntries={tabPayload.diaryEntries ?? []}
+        recentDiary={tabPayload.recentDiary ?? []}
+        watchlistItems={tabPayload.watchlistItems ?? []}
+        lists={tabPayload.lists ?? []}
         ratingStats={ratingStats}
         socialStats={socialStats}
         isOwner={isOwner}
@@ -122,6 +97,7 @@ export default async function PublicProfilePage({
         profileUserId={profile.id}
         initialIsFollowing={isFollowing}
         initialTab={initialTab}
+        initialLoadedTabs={[initialTab]}
       />
     </Suspense>
   );
