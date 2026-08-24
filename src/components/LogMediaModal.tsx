@@ -106,8 +106,10 @@ export default function LogMediaModal({
 
   if (!open) return null;
 
-  function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const reviewFromForm = String(formData.get("review") ?? review);
 
     startTransition(async () => {
       const result = await logMedia({
@@ -121,7 +123,7 @@ export default function LogMediaModal({
         rating,
         liked,
         isRewatch,
-        review,
+        review: reviewFromForm,
       });
 
       if (!result.ok) {
@@ -282,6 +284,7 @@ export default function LogMediaModal({
               Review
             </span>
             <textarea
+              name="review"
               value={review}
               onChange={(e) => setReview(e.target.value)}
               rows={4}

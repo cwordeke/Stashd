@@ -20,9 +20,10 @@ CREATE TABLE IF NOT EXISTS public.diary_entries (
 CREATE INDEX IF NOT EXISTS diary_entries_user_watched_idx
   ON public.diary_entries (user_id, watched_on DESC);
 
--- Ensure rewatch column exists + refresh PostgREST schema cache
+-- Ensure review + rewatch columns exist + refresh PostgREST schema cache
 ALTER TABLE public.diary_entries
-  ADD COLUMN IF NOT EXISTS is_rewatch BOOLEAN DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS is_rewatch BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS review_text TEXT;
 
 NOTIFY pgrst, 'reload schema';
 

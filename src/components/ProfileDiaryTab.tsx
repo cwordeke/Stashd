@@ -65,12 +65,15 @@ function DiaryRow({ entry }: { entry: DiaryEntry }) {
         timeZone: "UTC",
       })
     : "";
+  const reviewText = entry.reviewText?.trim() || null;
 
   return (
     <li>
       <Link
         href={mediaDetailPath(entry.mediaType, entry.mediaId)}
-        className="flex items-center gap-3 px-3 py-3.5 transition hover:bg-zinc-900/80 sm:gap-4 sm:px-4"
+        className={`flex gap-3 px-3 py-3.5 transition hover:bg-zinc-900/80 sm:gap-4 sm:px-4 ${
+          reviewText ? "items-start" : "items-center"
+        }`}
       >
         <div className="w-10 shrink-0 text-center">
           <p className="text-lg font-semibold leading-none text-zinc-100">
@@ -98,34 +101,44 @@ function DiaryRow({ entry }: { entry: DiaryEntry }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="truncate text-sm font-medium text-zinc-100 sm:text-[15px]">
-              {entry.title}
-            </h4>
-            <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-              {MEDIA_TYPE_LABELS[entry.mediaType].replace(/s$/, "")}
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-zinc-500">{entry.year}</p>
-        </div>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="truncate text-sm font-medium text-zinc-100 sm:text-[15px]">
+                  {entry.title}
+                </h4>
+                <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                  {MEDIA_TYPE_LABELS[entry.mediaType].replace(/s$/, "")}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">{entry.year}</p>
+            </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {entry.isRewatch ? (
-            <span
-              className="mr-1.5 text-emerald-400"
-              title="Rewatch"
-              aria-label="Rewatch"
-            >
-              <RewatchIcon />
-            </span>
-          ) : null}
-          {entry.rating != null ? (
-            <DisplayStars rating={entry.rating} size="lg" />
-          ) : null}
-          {entry.liked ? (
-            <span className="text-emerald-400" aria-label="Liked">
-              <HeartIcon />
-            </span>
+            <div className="flex shrink-0 items-center gap-2 pt-0.5">
+              {entry.isRewatch ? (
+                <span
+                  className="mr-1.5 text-emerald-400"
+                  title="Rewatch"
+                  aria-label="Rewatch"
+                >
+                  <RewatchIcon />
+                </span>
+              ) : null}
+              {entry.rating != null ? (
+                <DisplayStars rating={entry.rating} size="lg" />
+              ) : null}
+              {entry.liked ? (
+                <span className="text-emerald-400" aria-label="Liked">
+                  <HeartIcon />
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          {reviewText ? (
+            <p className="mt-2.5 whitespace-pre-wrap break-words border-l-2 border-emerald-500/35 bg-white/[0.03] px-3 py-2 text-[13px] leading-relaxed text-zinc-400">
+              {reviewText}
+            </p>
           ) : null}
         </div>
       </Link>

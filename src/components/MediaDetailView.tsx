@@ -4,8 +4,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LogMediaModal from "@/components/LogMediaModal";
+import MediaRecentReviews from "@/components/MediaRecentReviews";
 import MediaStatusControls from "@/components/MediaStatusControls";
 import StarRating from "@/components/StarRating";
+import type { MediaReview } from "@/app/actions/diary";
 import type { MediaLogState } from "@/lib/media-status";
 import { MEDIA_TYPE_LABELS, type MediaDetails } from "@/lib/types";
 
@@ -15,6 +17,7 @@ interface MediaDetailViewProps {
   initialLog: MediaLogState;
   hasLoggedBefore: boolean;
   isAuthenticated: boolean;
+  reviews: MediaReview[];
 }
 
 export default function MediaDetailView({
@@ -23,6 +26,7 @@ export default function MediaDetailView({
   initialLog,
   hasLoggedBefore,
   isAuthenticated,
+  reviews,
 }: MediaDetailViewProps) {
   const router = useRouter();
   const [logOpen, setLogOpen] = useState(false);
@@ -190,6 +194,8 @@ export default function MediaDetailView({
             </p>
           </div>
         </div>
+
+        <MediaRecentReviews reviews={reviews} />
       </div>
 
       <LogMediaModal

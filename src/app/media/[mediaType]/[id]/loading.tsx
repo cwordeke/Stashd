@@ -17,6 +17,10 @@ export default function Loading() {
             <div className="h-24 w-full max-w-xl animate-pulse rounded bg-zinc-800/60" />
           </div>
         </div>
+        <div className="mt-14 space-y-3 border-t border-white/[0.06] pt-10">
+          <div className="h-3 w-28 animate-pulse rounded bg-zinc-800" />
+          <div className="h-24 w-full animate-pulse rounded bg-zinc-800/50" />
+        </div>
       </div>
     </div>
   );

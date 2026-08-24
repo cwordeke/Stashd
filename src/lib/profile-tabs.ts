@@ -47,6 +47,7 @@ export interface DiaryEntry {
   liked: boolean;
   isRewatch: boolean;
   loggedOn: string;
+  reviewText: string | null;
 }
 
 export interface WatchlistItem extends UnifiedMediaItem {

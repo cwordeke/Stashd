@@ -40,6 +40,43 @@ function isValidDate(value: string): boolean {
   return !Number.isNaN(date.getTime());
 }
 
+function extractReviewText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asRating(value: unknown): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+interface ProfileEmbed {
+  username: string;
+  avatar_url: string | null;
+}
+
+function embedProfile(value: unknown): ProfileEmbed | null {
+  const row = Array.isArray(value) ? value[0] : value;
+  if (!row || typeof row !== "object") return null;
+  const rec = row as Record<string, unknown>;
+  if (typeof rec.username !== "string" || !rec.username) return null;
+  return {
+    username: rec.username,
+    avatar_url: typeof rec.avatar_url === "string" ? rec.avatar_url : null,
+  };
+}
+
+export interface MediaReview {
+  id: string;
+  reviewText: string;
+  rating: number | null;
+  loggedOn: string;
+  username: string;
+  avatarUrl: string | null;
+}
+
 /** PostgREST: "Could not find the 'foo' column of 'diary_entries' in the schema cache" */
 function missingColumnFromError(message: string): string | null {
   const match = message.match(
@@ -71,6 +108,13 @@ async function insertDiaryEntry(
       console.warn(
         "[logMedia] Run in Supabase SQL editor:\n" +
           "ALTER TABLE public.diary_entries ADD COLUMN IF NOT EXISTS is_rewatch BOOLEAN DEFAULT FALSE;\n" +
+          "NOTIFY pgrst, 'reload schema';"
+      );
+    }
+    if (missing === "review_text") {
+      console.warn(
+        "[logMedia] Run in Supabase SQL editor:\n" +
+          "ALTER TABLE public.diary_entries ADD COLUMN IF NOT EXISTS review_text TEXT;\n" +
           "NOTIFY pgrst, 'reload schema';"
       );
     }
@@ -144,7 +188,7 @@ export async function logMedia(input: LogMediaInput): Promise<LogMediaResult> {
   const title = input.title.trim() || "Untitled";
   const creator = input.creator.trim() || "—";
   const year = input.year.trim() || "—";
-  const reviewText = input.review.trim() || null;
+  const reviewText = extractReviewText(input.review);
   const now = new Date().toISOString();
 
   // Match the live table: no `creator` (often missing / stale in schema cache).
@@ -258,4 +302,128 @@ export async function logMedia(input: LogMediaInput): Promise<LogMediaResult> {
   }
 
   return { ok: true, message: "Logged successfully!" };
+}
+
+const RECENT_REVIEWS_LIMIT = 20;
+
+/** Most recent written reviews for a media title, with reviewer profile. */
+export async function getRecentReviewsForMedia(
+  mediaId: string,
+  mediaType: string,
+  limit = RECENT_REVIEWS_LIMIT
+): Promise<MediaReview[]> {
+  if (!isMediaType(mediaType) || !mediaId.trim()) return [];
+
+  const supabase = await createClient();
+  const capped = Math.min(Math.max(limit, 1), 50);
+
+  const withProfiles = await supabase
+    .from("diary_entries")
+    .select(
+      `
+      id,
+      user_id,
+      rating,
+      review_text,
+      watched_on,
+      created_at,
+      profile:profiles!user_id (
+        username,
+        avatar_url
+      )
+    `
+    )
+    .eq("media_id", mediaId)
+    .eq("media_type", mediaType)
+    .not("review_text", "is", null)
+    .neq("review_text", "")
+    .order("watched_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(capped);
+
+  let rows: Record<string, unknown>[] = [];
+
+  if (withProfiles.error) {
+    const fallback = await supabase
+      .from("diary_entries")
+      .select("id, user_id, rating, review_text, watched_on, created_at")
+      .eq("media_id", mediaId)
+      .eq("media_type", mediaType)
+      .not("review_text", "is", null)
+      .neq("review_text", "")
+      .order("watched_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(capped);
+
+    if (fallback.error || !fallback.data) {
+      console.error(
+        "[getRecentReviewsForMedia]",
+        fallback.error?.message ?? withProfiles.error.message
+      );
+      return [];
+    }
+
+    rows = fallback.data as unknown as Record<string, unknown>[];
+
+    const userIds = [
+      ...new Set(
+        rows
+          .map((row) => (typeof row.user_id === "string" ? row.user_id : null))
+          .filter((id): id is string => Boolean(id))
+      ),
+    ];
+
+    if (userIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url")
+        .in("id", userIds);
+
+      const byId = new Map(
+        (profiles ?? []).map((profile) => [
+          profile.id as string,
+          {
+            username: profile.username as string,
+            avatar_url: (profile.avatar_url as string | null) ?? null,
+          },
+        ])
+      );
+
+      rows = rows.map((row) => {
+        const userId = typeof row.user_id === "string" ? row.user_id : "";
+        return { ...row, profile: byId.get(userId) ?? null };
+      });
+    }
+  } else {
+    rows = (withProfiles.data ?? []) as unknown as Record<string, unknown>[];
+  }
+
+  const reviews: MediaReview[] = [];
+
+  for (const rec of rows) {
+    const reviewText = extractReviewText(rec.review_text);
+    if (!reviewText) continue;
+
+    const profile = embedProfile(rec.profile);
+    if (!profile) continue;
+
+    const id = typeof rec.id === "string" ? rec.id : "";
+    if (!id) continue;
+
+    const loggedOn =
+      (typeof rec.watched_on === "string" && rec.watched_on) ||
+      (typeof rec.created_at === "string" && rec.created_at) ||
+      "";
+
+    reviews.push({
+      id,
+      reviewText,
+      rating: asRating(rec.rating),
+      loggedOn,
+      username: profile.username,
+      avatarUrl: profile.avatar_url,
+    });
+  }
+
+  return reviews;
 }

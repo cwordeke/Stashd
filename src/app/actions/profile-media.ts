@@ -47,6 +47,7 @@ interface DiaryRow {
   is_liked: boolean | null;
   is_rewatch?: boolean | null;
   watched_on: string;
+  review_text?: string | null;
 }
 
 interface StashMetaRow {
@@ -425,7 +426,7 @@ export async function getDiaryEntriesByUserId(
   let primary = supabase
     .from("diary_entries")
     .select(
-      "id, media_id, media_type, title, image_url, release_year, rating, is_liked, is_rewatch, watched_on, created_at"
+      "id, media_id, media_type, title, image_url, release_year, rating, is_liked, is_rewatch, watched_on, created_at, review_text"
     )
     .eq("user_id", userId)
     .order("watched_on", { ascending: false })
@@ -443,7 +444,7 @@ export async function getDiaryEntriesByUserId(
     let fallback = supabase
       .from("diary_entries")
       .select(
-        "id, media_id, media_type, title, image_url, release_year, rating, is_liked, watched_on"
+        "id, media_id, media_type, title, image_url, release_year, rating, is_liked, watched_on, review_text"
       )
       .eq("user_id", userId)
       .order("watched_on", { ascending: false });
@@ -455,14 +456,34 @@ export async function getDiaryEntriesByUserId(
     const fallbackRes = await fallback;
 
     if (fallbackRes.error || !fallbackRes.data) {
-      console.error(
-        "[getDiaryEntriesByUserId]",
-        fallbackRes.error?.message ?? primaryRes.error.message
-      );
-      return [];
-    }
+      let minimal = supabase
+        .from("diary_entries")
+        .select(
+          "id, media_id, media_type, title, image_url, release_year, rating, is_liked, watched_on"
+        )
+        .eq("user_id", userId)
+        .order("watched_on", { ascending: false });
 
-    rows = fallbackRes.data as unknown as DiaryRow[];
+      if (limit != null) {
+        minimal = minimal.limit(limit);
+      }
+
+      const minimalRes = await minimal;
+
+      if (minimalRes.error || !minimalRes.data) {
+        console.error(
+          "[getDiaryEntriesByUserId]",
+          minimalRes.error?.message ??
+            fallbackRes.error?.message ??
+            primaryRes.error.message
+        );
+        return [];
+      }
+
+      rows = minimalRes.data as unknown as DiaryRow[];
+    } else {
+      rows = fallbackRes.data as unknown as DiaryRow[];
+    }
   } else {
     rows = (primaryRes.data ?? []) as unknown as DiaryRow[];
   }
@@ -481,6 +502,10 @@ export async function getDiaryEntriesByUserId(
       liked: Boolean(row.is_liked),
       isRewatch: Boolean(row.is_rewatch),
       loggedOn: row.watched_on,
+      reviewText:
+        typeof row.review_text === "string" && row.review_text.trim()
+          ? row.review_text.trim()
+          : null,
     }));
 
   const incomplete = entries.filter((e) =>
