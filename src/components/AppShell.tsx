@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { NavigationPendingProvider, useNavigationPending } from "@/context/NavigationPendingContext";
 import { StashProvider } from "@/context/StashContext";
 import Navbar from "@/components/Navbar";
 import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
-import { createClient } from "@/utils/supabase/client";
+import {
+  createClient,
+  syncBrowserSessionFromCookies,
+} from "@/utils/supabase/client";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -30,6 +34,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
   const [user, setUser] = useState<AuthUserSummary | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
@@ -38,6 +43,9 @@ export default function AppShell({ children }: AppShellProps) {
     let cancelled = false;
 
     async function syncUser() {
+      await syncBrowserSessionFromCookies();
+      if (cancelled) return;
+
       const {
         data: { user: nextUser },
       } = await supabase.auth.getUser();
@@ -87,6 +95,12 @@ export default function AppShell({ children }: AppShellProps) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Email sign-in/up sets cookies via a server action, then client-navigates.
+  // Re-read those cookies so the singleton client (and header) catch up.
+  useEffect(() => {
+    void syncBrowserSessionFromCookies();
+  }, [pathname]);
 
   return (
     <NavigationPendingProvider>

@@ -1,22 +1,46 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import BrandMark from "@/components/BrandMark";
+import { signInWithEmail, signUpWithEmail } from "@/app/actions/auth";
+import { cn } from "@/lib/cn";
+import { USERNAME_MAX_LEN } from "@/lib/username";
 import { createClient } from "@/utils/supabase/client";
+
+type AuthMode = "signin" | "signup";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<AuthMode>("signin");
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "auth"
       ? "Sign-in failed. Please try again."
       : null
   );
 
+  function switchMode(next: AuthMode) {
+    setMode(next);
+    setError(null);
+  }
+
+  async function handleSignIn(formData: FormData) {
+    setError(null);
+    const result = await signInWithEmail(formData);
+    if (result?.error) setError(result.error);
+  }
+
+  async function handleSignUp(formData: FormData) {
+    setError(null);
+    const result = await signUpWithEmail(formData);
+    if (result?.error) setError(result.error);
+  }
+
   async function handleGoogleSignIn() {
-    setLoading(true);
+    setOauthLoading(true);
     setError(null);
 
     const supabase = createClient();
@@ -29,9 +53,11 @@ function LoginForm() {
 
     if (oauthError) {
       setError(oauthError.message);
-      setLoading(false);
+      setOauthLoading(false);
     }
   }
+
+  const isSignUp = mode === "signup";
 
   return (
     <div className="border border-white/10 bg-zinc-900/50 p-8">
@@ -43,31 +69,225 @@ function LoginForm() {
           <BrandMark stacked size={96} priority />
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight text-white">
-          Sign in to continue
+          {isSignUp ? "Create your account" : "Sign in to continue"}
         </h1>
         <p className="text-sm text-zinc-400">
           Save your Top 4 stash across movies, TV, games, books, and music.
         </p>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Authentication mode"
+        className="mb-6 grid grid-cols-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-1"
+      >
+        <ModeTab
+          active={!isSignUp}
+          onClick={() => switchMode("signin")}
+          disabled={oauthLoading}
+        >
+          Sign In
+        </ModeTab>
+        <ModeTab
+          active={isSignUp}
+          onClick={() => switchMode("signup")}
+          disabled={oauthLoading}
+        >
+          Sign Up
+        </ModeTab>
+      </div>
+
+      {isSignUp ? (
+        <form action={handleSignUp} className="space-y-4">
+          <EmailField disabled={oauthLoading} />
+          <PasswordField
+            autoComplete="new-password"
+            disabled={oauthLoading}
+          />
+          <UsernameField disabled={oauthLoading} />
+          {error ? <AuthError message={error} /> : null}
+          <SubmitButton disabled={oauthLoading} pendingLabel="Creating account…">
+            Create account
+          </SubmitButton>
+        </form>
+      ) : (
+        <form action={handleSignIn} className="space-y-4">
+          <EmailField disabled={oauthLoading} />
+          <PasswordField
+            autoComplete="current-password"
+            disabled={oauthLoading}
+          />
+          {error ? <AuthError message={error} /> : null}
+          <SubmitButton disabled={oauthLoading} pendingLabel="Signing in…">
+            Sign in
+          </SubmitButton>
+        </form>
+      )}
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-white/10" />
+        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
+          Or
+        </span>
+        <div className="h-px flex-1 bg-white/10" />
+      </div>
+
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        disabled={loading}
+        disabled={oauthLoading}
         className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-4 py-2.5 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <GoogleIcon />
-        {loading ? "Redirecting…" : "Continue with Google"}
+        {oauthLoading ? "Redirecting…" : "Continue with Google"}
       </button>
 
-      {error ? (
-        <p className="mt-4 text-center text-sm text-red-400">{error}</p>
-      ) : null}
-
       <p className="mt-6 text-center text-xs text-zinc-500">
-        By continuing, you agree to use Stashd with your Google account.
+        By continuing, you agree to use Stashd with your account.
       </p>
     </div>
+  );
+}
+
+function ModeTab({
+  active,
+  onClick,
+  disabled,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "rounded px-3 py-2 text-[13px] font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
+        active
+          ? "bg-zinc-800 text-white shadow-sm"
+          : "text-zinc-500 hover:text-zinc-300"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmailField({ disabled }: { disabled?: boolean }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        Email
+      </span>
+      <input
+        type="email"
+        name="email"
+        required
+        autoComplete="email"
+        placeholder="you@example.com"
+        disabled={disabled}
+        className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/[0.18] disabled:cursor-not-allowed disabled:opacity-60"
+      />
+    </label>
+  );
+}
+
+function PasswordField({
+  autoComplete,
+  disabled,
+}: {
+  autoComplete: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        Password
+      </span>
+      <input
+        type="password"
+        name="password"
+        required
+        minLength={6}
+        autoComplete={autoComplete}
+        placeholder="••••••••"
+        disabled={disabled}
+        className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/[0.18] disabled:cursor-not-allowed disabled:opacity-60"
+      />
+    </label>
+  );
+}
+
+function UsernameField({ disabled }: { disabled?: boolean }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        Username
+      </span>
+      <div className="flex overflow-hidden rounded-md border border-white/[0.08] bg-white/[0.04] focus-within:border-white/[0.18]">
+        <span className="flex items-center border-r border-zinc-800 px-3 text-sm text-zinc-500">
+          /u/
+        </span>
+        <input
+          type="text"
+          name="username"
+          required
+          autoComplete="username"
+          placeholder="cyberfan"
+          maxLength={USERNAME_MAX_LEN}
+          disabled={disabled}
+          pattern="[A-Za-z0-9_]{3,24}"
+          title="Letters, numbers, and underscores only. 3–24 characters."
+          onInput={(e) => {
+            e.currentTarget.value = e.currentTarget.value
+              .toLowerCase()
+              .replace(/\s/g, "");
+          }}
+          className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+      </div>
+      <p className="text-xs text-zinc-500">
+        Letters, numbers, and underscores only. 3–24 characters.
+      </p>
+    </label>
+  );
+}
+
+function AuthError({ message }: { message: string }) {
+  return (
+    <p role="alert" className="text-sm text-red-400">
+      {message}
+    </p>
+  );
+}
+
+function SubmitButton({
+  children,
+  pendingLabel,
+  disabled,
+}: {
+  children: React.ReactNode;
+  pendingLabel: string;
+  disabled?: boolean;
+}) {
+  const { pending } = useFormStatus();
+  const isDisabled = disabled || pending;
+
+  return (
+    <button
+      type="submit"
+      disabled={isDisabled}
+      className="w-full rounded-md bg-emerald-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {pending ? pendingLabel : children}
+    </button>
   );
 }
 
