@@ -24,6 +24,16 @@ export function parsePreferredCategories(value: unknown): MediaType[] {
   return next;
 }
 
+/** Prefer the stored ranking; if empty, parse a JWT/metadata fallback. */
+export function resolvePreferredCategories(
+  stored: unknown,
+  fallback?: unknown
+): MediaType[] {
+  const fromStored = parsePreferredCategories(stored);
+  if (fromStored.length > 0) return fromStored;
+  return parsePreferredCategories(fallback);
+}
+
 /** Ranked types first, then any remaining types in the default order. */
 export function orderedMediaTypes(
   preferred: MediaType[] | null | undefined

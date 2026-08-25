@@ -1,5 +1,8 @@
 import { cache } from "react";
-import { parsePreferredCategories } from "@/lib/media-order";
+import {
+  parsePreferredCategories,
+  resolvePreferredCategories,
+} from "@/lib/media-order";
 import { createClient } from "@/utils/supabase/server";
 import { normalizeUsername } from "@/lib/username";
 import type { MediaType } from "@/lib/types";
@@ -12,7 +15,7 @@ export interface Profile {
   preferredCategories: MediaType[];
 }
 
-interface ProfileRow {
+export interface ProfileRow {
   id: string;
   username: string;
   avatar_url: string | null;
@@ -78,7 +81,16 @@ export const getOwnProfile = cache(async (): Promise<Profile | null> => {
   } = await supabase.auth.getUser();
 
   if (!user) return null;
-  return getProfileByUserId(user.id);
+  const profile = await getProfileByUserId(user.id);
+  if (!profile) return null;
+
+  return {
+    ...profile,
+    preferredCategories: resolvePreferredCategories(
+      profile.preferredCategories,
+      user.user_metadata?.preferred_categories
+    ),
+  };
 });
 
 export const getProfileByUsername = cache(

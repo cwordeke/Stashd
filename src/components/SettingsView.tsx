@@ -15,19 +15,22 @@ import {
 } from "@/app/actions/profile";
 import ImportHub from "@/components/ImportHub";
 import NavLink from "@/components/NavLink";
+import PreferencesSettings from "@/components/PreferencesSettings";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
 import { profilePath } from "@/lib/auth";
 import { cn } from "@/lib/cn";
+import type { MediaType } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
 
 const BIO_MAX_LENGTH = 280;
 const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
-type SettingsGroup = "account" | "data";
+type SettingsGroup = "account" | "preferences" | "data";
 
 const SETTINGS_GROUPS: { id: SettingsGroup; label: string }[] = [
   { id: "account", label: "Account" },
+  { id: "preferences", label: "Preferences" },
   { id: "data", label: "Data" },
 ];
 
@@ -36,6 +39,7 @@ interface SettingsViewProps {
   avatarUrl: string | null;
   bio: string | null;
   email: string | null;
+  preferredCategories: MediaType[];
 }
 
 export default function SettingsView({
@@ -43,6 +47,7 @@ export default function SettingsView({
   avatarUrl: initialAvatarUrl,
   bio: initialBio,
   email,
+  preferredCategories,
 }: SettingsViewProps) {
   const router = useRouter();
   const { beginNavigation } = useNavigationPending();
@@ -492,6 +497,10 @@ export default function SettingsView({
                 </div>
               </section>
             </div>
+          ) : null}
+
+          {group === "preferences" ? (
+            <PreferencesSettings preferredCategories={preferredCategories} />
           ) : null}
 
           {group === "data" ? (

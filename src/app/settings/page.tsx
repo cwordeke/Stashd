@@ -32,6 +32,7 @@ export default async function SettingsPage() {
       avatarUrl={profile.avatarUrl}
       bio={profile.bio}
       email={user.email ?? null}
+      preferredCategories={profile.preferredCategories}
     />
   );
 }

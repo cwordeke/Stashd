@@ -10,7 +10,7 @@ import {
   getProfileFollowStats,
 } from "@/app/actions/social";
 import { getProfileByUsername } from "@/lib/profile";
-import { parsePreferredCategories } from "@/lib/media-order";
+import { resolvePreferredCategories } from "@/lib/media-order";
 import { parseProfileTab } from "@/lib/profile-tabs";
 import { emptyShelves } from "@/lib/types";
 import { createClient } from "@/utils/supabase/server";
@@ -54,14 +54,10 @@ export default async function PublicProfilePage({
   const auth = await supabase.auth.getUser();
   const viewerId = auth.data.user?.id ?? null;
   const isOwner = viewerId === profile.id;
-  const preferredCategories =
-    profile.preferredCategories.length > 0
-      ? profile.preferredCategories
-      : isOwner
-        ? parsePreferredCategories(
-            auth.data.user?.user_metadata?.preferred_categories
-          )
-        : [];
+  const preferredCategories = resolvePreferredCategories(
+    profile.preferredCategories,
+    isOwner ? auth.data.user?.user_metadata?.preferred_categories : undefined
+  );
 
   // Always: sidebar stats. Tab content: only the active tab.
   const [ratingStats, followStats, diaryLogStats, isFollowing, tabPayload] =

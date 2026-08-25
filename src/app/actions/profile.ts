@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parsePreferredCategories } from "@/lib/media-order";
 import {
   getProfileByUserId,
   rowToProfile,
   type Profile,
+  type ProfileRow,
 } from "@/lib/profile";
+import type { MediaType } from "@/lib/types";
 import { createClient } from "@/utils/supabase/server";
 import { normalizeUsername, validateUsername } from "@/lib/username";
 
@@ -70,14 +73,7 @@ export async function claimUsername(
     data: { username: normalized },
   });
 
-  const profile = rowToProfile(
-    data as {
-      id: string;
-      username: string;
-      avatar_url: string | null;
-      bio: string | null;
-    }
-  );
+  const profile = rowToProfile(data as ProfileRow);
   revalidatePath("/onboarding");
   revalidatePath(`/u/${profile.username}`);
   revalidatePath("/");
@@ -129,14 +125,7 @@ export async function updateProfileBio(
     };
   }
 
-  const profile = rowToProfile(
-    data as {
-      id: string;
-      username: string;
-      avatar_url: string | null;
-      bio: string | null;
-    }
-  );
+  const profile = rowToProfile(data as ProfileRow);
 
   revalidatePath(`/u/${profile.username}`);
   revalidatePath("/profile");
@@ -251,14 +240,7 @@ export async function updateProfileAvatar(
     data: { avatar_url: avatarUrl },
   });
 
-  const profile = rowToProfile(
-    data as {
-      id: string;
-      username: string;
-      avatar_url: string | null;
-      bio: string | null;
-    }
-  );
+  const profile = rowToProfile(data as ProfileRow);
 
   revalidatePath(`/u/${profile.username}`);
   revalidatePath("/profile");
@@ -266,4 +248,51 @@ export async function updateProfileAvatar(
   revalidatePath("/");
 
   return { ok: true, profile, message: "Profile picture updated" };
+}
+
+export async function updatePreferredCategories(
+  categories: MediaType[]
+): Promise<ProfileActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "Sign in to update preferences" };
+  }
+
+  const preferredCategories = parsePreferredCategories(categories);
+  if (preferredCategories.length === 0) {
+    return { ok: false, message: "Choose at least one media type" };
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ preferred_categories: preferredCategories })
+    .eq("id", user.id)
+    .select("id, username, avatar_url, bio, preferred_categories")
+    .single();
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message.includes("preferred_categories")
+        ? `${error.message} — run supabase/onboarding_profile.sql in Supabase.`
+        : error.message,
+    };
+  }
+
+  await supabase.auth.updateUser({
+    data: { preferred_categories: preferredCategories },
+  });
+
+  const profile = rowToProfile(data as ProfileRow);
+
+  revalidatePath(`/u/${profile.username}`);
+  revalidatePath("/profile");
+  revalidatePath("/settings");
+  revalidatePath("/");
+
+  return { ok: true, profile, message: "Preferences saved" };
 }

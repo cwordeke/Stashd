@@ -15,10 +15,6 @@ export type OnboardingActionResult =
   | { ok: true; username: string }
   | { ok: false; message: string };
 
-function uniqueCategories(values: MediaType[]): MediaType[] {
-  return parsePreferredCategories(values);
-}
-
 export async function checkUsernameAvailable(
   username: string
 ): Promise<{ available: boolean; message: string | null }> {
@@ -64,7 +60,7 @@ export async function completeOnboarding(
   }
 
   const username = normalizeUsername(data.username);
-  const preferredCategories = uniqueCategories(data.preferredCategories);
+  const preferredCategories = parsePreferredCategories(data.preferredCategories);
 
   const taken = await supabase
     .from("profiles")
