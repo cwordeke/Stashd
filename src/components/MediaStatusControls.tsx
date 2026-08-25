@@ -5,10 +5,25 @@ import { useRouter } from "next/navigation";
 import { setMediaLogState } from "@/app/actions/media-logs";
 import { cn } from "@/lib/cn";
 import {
+  completedStatusFor,
   mediaStatusLabels,
   type MediaLogState,
+  type MediaLogStatus,
 } from "@/lib/media-status";
 import type { MediaType } from "@/lib/types";
+
+/**
+ * Scale so the drawn graphic (not empty PNG canvas padding) fills the same
+ * ~20px box. Canvases: watched/listened/played 512, read 360, save 200.
+ */
+const COMPLETED_ICON: Record<MediaLogStatus, { src: string; scale: number }> = {
+  watched: { src: "/watchedIcon.png", scale: 0.95 },
+  played: { src: "/playedIcon.png", scale: 0.95 },
+  read: { src: "/readIcon.png", scale: 1.11 },
+  listened: { src: "/listenedIcon.png", scale: 0.83 },
+};
+
+const SAVE_ICON = { src: "/saveIcon.png", scale: 0.99 };
 
 interface MediaStatusControlsProps {
   mediaId: string;
@@ -36,6 +51,7 @@ export default function MediaStatusControls({
   const syncedRef = useRef(initialState);
   const persistChainRef = useRef(Promise.resolve());
   const labels = mediaStatusLabels(mediaType);
+  const completedIcon = COMPLETED_ICON[completedStatusFor(mediaType)];
 
   useEffect(() => {
     setState(initialState);
@@ -101,13 +117,25 @@ export default function MediaStatusControls({
         label={labels.completed}
         active={state.completed}
         onClick={() => toggle("completed")}
-        icon={<CheckIcon />}
+        icon={
+          <StatusGlyph
+            src={completedIcon.src}
+            scale={completedIcon.scale}
+            active={state.completed}
+          />
+        }
       />
       <StatusButton
         label={labels.list}
         active={state.onList}
         onClick={() => toggle("onList")}
-        icon={<ListIcon />}
+        icon={
+          <StatusGlyph
+            src={SAVE_ICON.src}
+            scale={SAVE_ICON.scale}
+            active={state.onList}
+          />
+        }
       />
       <StatusButton
         label="Like"
@@ -162,31 +190,58 @@ function StatusButton({
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
-      <path
-        d="M5 12.5l4.5 4.5L19 7.5"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+function StatusGlyph({
+  src,
+  scale,
+  active,
+}: {
+  src: string;
+  scale: number;
+  active: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fill = active ? "#34d399" : "#71717a";
 
-function ListIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
-      <path
-        d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const img = new Image();
+    let cancelled = false;
+
+    img.onload = () => {
+      if (cancelled) return;
+      const css = 24;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(css * dpr);
+      canvas.height = Math.round(css * dpr);
+      canvas.style.width = `${css}px`;
+      canvas.style.height = `${css}px`;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, css, css);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      const draw = css * scale;
+      const origin = (css - draw) / 2;
+      ctx.drawImage(img, origin, origin, draw, draw);
+      ctx.globalCompositeOperation = "source-in";
+      ctx.fillStyle = fill;
+      ctx.fillRect(0, 0, css, css);
+    };
+
+    img.src = src;
+    return () => {
+      cancelled = true;
+    };
+  }, [src, scale, fill]);
+
+  return <canvas ref={canvasRef} className="h-6 w-6" aria-hidden />;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
