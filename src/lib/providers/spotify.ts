@@ -188,33 +188,61 @@ function filterAlbumCandidates(albums: SpotifyAlbum[]): SpotifyAlbum[] {
   return out;
 }
 
-export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
-  const token = await getSpotifyAccessToken();
+/** Spotify GET /search max `limit` is 10 (Feb 2026 API change). */
+const SEARCH_PAGE_SIZE = 10;
+
+async function spotifySearchAlbums(
+  token: string,
+  query: string,
+  options?: { limit?: number; offset?: number; revalidate?: number }
+): Promise<SpotifyAlbum[]> {
+  const limit = Math.min(
+    Math.max(options?.limit ?? SEARCH_PAGE_SIZE, 1),
+    SEARCH_PAGE_SIZE
+  );
+  const offset = Math.max(options?.offset ?? 0, 0);
 
   const url = new URL("https://api.spotify.com/v1/search");
   url.searchParams.set("q", query);
-  // Albums only — never surface individual tracks
   url.searchParams.set("type", "album");
-  url.searchParams.set("limit", "15");
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("offset", String(offset));
   url.searchParams.set("market", "US");
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 120 },
+    next: { revalidate: options?.revalidate ?? 120 },
   });
 
-  if (!res.ok) throw new Error(`Spotify request failed: ${res.status}`);
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const body = (await res.json()) as { error?: { message?: string } };
+      detail = body.error?.message ? `: ${body.error.message}` : "";
+    } catch {
+      // ignore parse failures
+    }
+    throw new Error(`Spotify request failed: ${res.status}${detail}`);
+  }
 
   const data = (await res.json()) as {
     albums?: { items?: SpotifyAlbum[] };
   };
-
-  const candidates = filterAlbumCandidates(data.albums?.items ?? []);
-  return dedupeByTitle(candidates).map(toMusicItem);
+  return data.albums?.items ?? [];
 }
 
-/** Spotify search max `limit` is 10 (Feb 2026); paginate to fill the grid. */
-const SEARCH_PAGE_SIZE = 10;
+export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
+  const token = await getSpotifyAccessToken();
+
+  // Two pages (10 + 10) to keep enough candidates after album-type filters
+  const pages = await Promise.all([
+    spotifySearchAlbums(token, query, { offset: 0, revalidate: 120 }),
+    spotifySearchAlbums(token, query, { offset: 10, revalidate: 120 }),
+  ]);
+
+  const candidates = filterAlbumCandidates(pages.flat());
+  return dedupeByTitle(candidates).map(toMusicItem);
+}
 
 export async function getTrendingMusic(
   limit = 20
@@ -230,29 +258,12 @@ export async function getTrendingMusic(
   // year:YYYY + US market ranks major popular releases for English-speaking listeners
   // better than tag:new, which skews toward obscure international catalog adds.
   const pages = await Promise.all(
-    offsets.map(async (offset) => {
-      const url = new URL("https://api.spotify.com/v1/search");
-      url.searchParams.set("q", `year:${year}`);
-      url.searchParams.set("type", "album");
-      url.searchParams.set("limit", String(SEARCH_PAGE_SIZE));
-      url.searchParams.set("offset", String(offset));
-      url.searchParams.set("market", "US");
-
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-        next: { revalidate: 86400 },
-      });
-
-      if (!res.ok) {
-        throw new Error(`Spotify new albums search failed: ${res.status}`);
-      }
-
-      const data = (await res.json()) as {
-        albums?: { items?: SpotifyAlbum[] };
-      };
-
-      return data.albums?.items ?? [];
-    })
+    offsets.map((offset) =>
+      spotifySearchAlbums(token, `year:${year}`, {
+        offset,
+        revalidate: 86400,
+      })
+    )
   );
 
   const candidates = filterAlbumCandidates(pages.flat());
@@ -268,28 +279,12 @@ export async function getNewMusic(): Promise<UnifiedMediaItem[]> {
   const target = 20;
 
   const pages = await Promise.all(
-    [0, 10].map(async (offset) => {
-      const url = new URL("https://api.spotify.com/v1/search");
-      url.searchParams.set("q", "tag:new");
-      url.searchParams.set("type", "album");
-      url.searchParams.set("limit", String(SEARCH_PAGE_SIZE));
-      url.searchParams.set("offset", String(offset));
-      url.searchParams.set("market", "US");
-
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-        next: { revalidate: 86400 },
-      });
-
-      if (!res.ok) {
-        throw new Error(`Spotify new albums failed: ${res.status}`);
-      }
-
-      const data = (await res.json()) as {
-        albums?: { items?: SpotifyAlbum[] };
-      };
-      return data.albums?.items ?? [];
-    })
+    [0, 10].map((offset) =>
+      spotifySearchAlbums(token, "tag:new", {
+        offset,
+        revalidate: 86400,
+      })
+    )
   );
 
   const candidates = filterAlbumCandidates(pages.flat());

@@ -23,6 +23,7 @@ export async function getSpotifyAccessToken(): Promise<string> {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "grant_type=client_credentials",
+    cache: "no-store",
   });
 
   if (!res.ok) {
