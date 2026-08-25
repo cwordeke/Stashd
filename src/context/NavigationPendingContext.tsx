@@ -22,9 +22,15 @@ interface NavigationPendingContextValue {
 const NavigationPendingContext =
   createContext<NavigationPendingContextValue | null>(null);
 
+function pathOnly(href: string): string {
+  const noHash = href.split("#")[0] ?? href;
+  return noHash.split("?")[0] ?? noHash;
+}
+
 function pathsMatch(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const path = pathOnly(href);
+  if (path === "/") return pathname === "/";
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 export function NavigationPendingProvider({

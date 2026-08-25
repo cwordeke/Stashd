@@ -93,6 +93,35 @@ async function albumHasExplicitTracks(
 }
 
 /**
+ * Collapse clean/explicit duplicates (same artist + title) using titles only.
+ * Avoids extra Spotify album fetches that stall search.
+ */
+function dedupeByTitle(albums: SpotifyAlbum[]): SpotifyAlbum[] {
+  const groups = new Map<string, SpotifyAlbum[]>();
+
+  for (const album of albums) {
+    const key = albumDedupeKey(album);
+    const group = groups.get(key);
+    if (group) group.push(album);
+    else groups.set(key, [album]);
+  }
+
+  const picked: SpotifyAlbum[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      picked.push(group[0]!);
+      continue;
+    }
+
+    const nonClean = group.filter((album) => !isCleanLabeled(album.name));
+    picked.push((nonClean[0] ?? group[0])!);
+  }
+
+  return picked;
+}
+
+/**
  * Collapse clean/explicit duplicates (same artist + title). Prefer explicit.
  */
 async function dedupePreferExplicit(
@@ -181,8 +210,7 @@ export async function searchMusic(query: string): Promise<UnifiedMediaItem[]> {
   };
 
   const candidates = filterAlbumCandidates(data.albums?.items ?? []);
-  const deduped = await dedupePreferExplicit(candidates, token);
-  return deduped.map(toMusicItem);
+  return dedupeByTitle(candidates).map(toMusicItem);
 }
 
 /** Spotify search max `limit` is 10 (Feb 2026); paginate to fill the grid. */
@@ -228,8 +256,7 @@ export async function getTrendingMusic(
   );
 
   const candidates = filterAlbumCandidates(pages.flat());
-  const deduped = await dedupePreferExplicit(candidates, token);
-  return deduped.slice(0, limit).map(toMusicItem);
+  return dedupeByTitle(candidates).slice(0, limit).map(toMusicItem);
 }
 
 export async function getPopularMusic(): Promise<UnifiedMediaItem[]> {

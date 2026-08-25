@@ -20,7 +20,7 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
-const DEBOUNCE_MS = 280;
+const DEBOUNCE_MS = 200;
 const SUGGESTION_LIMIT = 8;
 
 type SearchTab = "media" | "users";

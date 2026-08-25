@@ -1,5 +1,4 @@
 import { tmdbPoster, yearFromDate } from "@/lib/media";
-import { getMediaDetails } from "@/lib/providers/details";
 import { isoDate, recentReleaseWindow } from "@/lib/release-window";
 import type { UnifiedMediaItem } from "@/lib/types";
 
@@ -14,22 +13,6 @@ interface TmdbListItem {
 
 interface TmdbListResponse {
   results?: TmdbListItem[];
-}
-
-/** Same creator string the detail page shows (“Directed by …”). */
-async function withDetailCreators(
-  items: UnifiedMediaItem[]
-): Promise<UnifiedMediaItem[]> {
-  return Promise.all(
-    items.map(async (item) => {
-      try {
-        const details = await getMediaDetails(item.mediaType, item.id);
-        return { ...item, creator: details.creator };
-      } catch {
-        return item;
-      }
-    })
-  );
 }
 
 async function getTmdbTrending(
@@ -81,7 +64,7 @@ async function getTmdbTrending(
     if (items.length >= limit) break;
   }
 
-  return withDetailCreators(items);
+  return items;
 }
 
 export async function getTrendingMovies(
@@ -243,12 +226,9 @@ export async function searchTmdb(query: string) {
     }
   }
 
-  const [enrichedMovies, enrichedTv] = await Promise.all([
-    withDetailCreators(movies),
-    withDetailCreators(tv),
-  ]);
-
-  return { movies: enrichedMovies, tv: enrichedTv };
+  // Search lists skip per-hit /movie/{id} and /tv/{id} fetches — those
+  // multiply TMDB calls by every result and dominate search latency.
+  return { movies, tv };
 }
 
 function fourDigitYear(year?: string): string | null {

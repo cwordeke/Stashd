@@ -171,6 +171,38 @@ function snapshot(columns: SearchColumns): SearchColumns {
   };
 }
 
+const CLIENT_CACHE_TTL_MS = 45_000;
+const CLIENT_CACHE_MAX = 40;
+const clientSearchCache = new Map<
+  string,
+  { columns: SearchColumns; expires: number }
+>();
+
+function cacheKey(query: string, extra = ""): string {
+  return `${query.trim().toLowerCase()}::${extra}`;
+}
+
+function readSearchCache(key: string): SearchColumns | null {
+  const hit = clientSearchCache.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expires) {
+    clientSearchCache.delete(key);
+    return null;
+  }
+  return snapshot(hit.columns);
+}
+
+function writeSearchCache(key: string, columns: SearchColumns) {
+  if (clientSearchCache.size >= CLIENT_CACHE_MAX) {
+    const oldest = clientSearchCache.keys().next().value;
+    if (oldest) clientSearchCache.delete(oldest);
+  }
+  clientSearchCache.set(key, {
+    columns: snapshot(columns),
+    expires: Date.now() + CLIENT_CACHE_TTL_MS,
+  });
+}
+
 /**
  * Sources to query for a filter.
  * All → every provider (parallel). A specific type → only that provider (fast).
@@ -205,6 +237,11 @@ export async function searchAllMedia(
   if (filterType) params.set("type", filterType);
   if (limit != null) params.set("limit", String(limit));
 
+  const cached = readSearchCache(
+    cacheKey(trimmed, `all:${filterType ?? "all"}:${limit ?? ""}`)
+  );
+  if (cached) return cached;
+
   try {
     const res = await fetch(`/api/search?${params}`, { signal });
     const data = (await res.json()) as UnifiedSearchPayload & SearchResponse;
@@ -220,7 +257,12 @@ export async function searchAllMedia(
       return columns;
     }
 
-    return columnsFromPayload(data, filterType);
+    const columns = columnsFromPayload(data, filterType);
+    writeSearchCache(
+      cacheKey(trimmed, `all:${filterType ?? "all"}:${limit ?? ""}`),
+      columns
+    );
+    return columns;
   } catch (err) {
     if (signal?.aborted) {
       return emptySearchColumns();
@@ -258,8 +300,21 @@ export async function fetchSearchSources(
     return columns;
   }
 
-  const q = encodeURIComponent(trimmed);
   const unique = [...new Set(sources)];
+  const sourceKey = cacheKey(trimmed, `src:${unique.slice().sort().join(",")}`);
+  const cached = readSearchCache(sourceKey);
+  if (cached) {
+    const merged = snapshot(columns);
+    for (const source of unique) {
+      for (const type of mediaTypesForSource(source)) {
+        merged[type] = { ...cached[type], loading: false };
+      }
+    }
+    onUpdate?.(merged);
+    return merged;
+  }
+
+  const q = encodeURIComponent(trimmed);
 
   for (const source of unique) {
     for (const type of mediaTypesForSource(source)) {
@@ -326,7 +381,10 @@ export async function fetchSearchSources(
   });
 
   await Promise.all(tasks);
-  return snapshot(columns);
+  if (signal?.aborted) return snapshot(columns);
+  const done = snapshot(columns);
+  writeSearchCache(sourceKey, done);
+  return done;
 }
 
 export function flattenRanked(

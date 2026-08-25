@@ -24,6 +24,24 @@ export function MediaGridSkeleton({ count = 24 }: { count?: number }) {
   );
 }
 
+export function SearchPageSkeleton() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <div className="mb-6 h-8 w-28 animate-pulse rounded bg-zinc-800" />
+      <div className="mb-4 h-9 max-w-xl animate-pulse rounded-md bg-zinc-800" />
+      <div className="mb-8 flex gap-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-7 w-16 animate-pulse rounded-md bg-zinc-800"
+          />
+        ))}
+      </div>
+      <MediaGridSkeleton />
+    </div>
+  );
+}
+
 export function CategoryPageSkeleton({
   type,
   title = "Loading…",

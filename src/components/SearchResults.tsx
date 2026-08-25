@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MediaCard from "@/components/MediaCard";
-import { useNavigationPending } from "@/context/NavigationPendingContext";
+import { MediaGridSkeleton } from "@/components/LoadingSkeleton";
 import {
   columnsStillLoading,
   emptySearchColumns,
@@ -31,7 +31,6 @@ function hasAnyResults(columns: SearchColumns): boolean {
 export default function SearchResults() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { beginNavigation } = useNavigationPending();
   const inputRef = useRef<HTMLInputElement>(null);
   const loadedQueryRef = useRef<string | null>(null);
   const columnsRef = useRef<SearchColumns>(emptySearchColumns());
@@ -208,7 +207,6 @@ export default function SearchResults() {
     const href = params.toString() ? `/search?${params}` : "/search";
     if (trimmed !== q) {
       loadedQueryRef.current = null;
-      beginNavigation(href);
       router.push(href);
       return;
     }
@@ -275,9 +273,11 @@ export default function SearchResults() {
         </p>
       )}
 
-      {q && initialLoading && visibleResults.length === 0 && (
-        <p className="mb-4 text-sm text-zinc-400">Loading…</p>
-      )}
+      {q &&
+      visibleResults.length === 0 &&
+      (initialLoading || sourcesPending) ? (
+        <MediaGridSkeleton />
+      ) : null}
 
       {showEmpty && (
         <p className="py-8 text-center text-sm text-zinc-500">
@@ -300,12 +300,6 @@ export default function SearchResults() {
             ))}
           </div>
 
-          {sourcesPending && (
-            <p className="mt-4 text-sm text-zinc-500">
-              Searching other sources…
-            </p>
-          )}
-
           {hasMore && (
             <div className="mt-6 flex justify-center">
               <button
@@ -319,13 +313,6 @@ export default function SearchResults() {
           )}
         </>
       )}
-
-      {q &&
-        !initialLoading &&
-        sourcesPending &&
-        visibleResults.length === 0 && (
-          <p className="mt-2 text-sm text-zinc-500">Loading…</p>
-        )}
     </div>
   );
 }
