@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
-import { normalizeUsername, validateUsername } from "@/lib/username";
 
 export type AuthActionResult = { error: string };
 
@@ -38,7 +37,6 @@ export async function signUpWithEmail(
 ): Promise<AuthActionResult | void> {
   const email = formString(formData, "email").trim();
   const password = formString(formData, "password");
-  const usernameRaw = formString(formData, "username");
 
   if (!email || !password) {
     return { error: "Email and password are required" };
@@ -48,29 +46,12 @@ export async function signUpWithEmail(
     return { error: "Password must be at least 6 characters" };
   }
 
-  const validationError = validateUsername(usernameRaw);
-  if (validationError) {
-    return { error: validationError };
-  }
-
-  const username = normalizeUsername(usernameRaw);
   const supabase = await createClient();
-
-  const { data: taken } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (taken) {
-    return { error: "Username taken" };
-  }
-
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { username },
+      data: { onboarding_completed: false },
     },
   });
 
@@ -94,47 +75,10 @@ export async function signUpWithEmail(
     return { error: "An account with this email already exists" };
   }
 
-  const { error: insertError } = await supabase.from("profiles").insert({
-    id: user.id,
-    username,
-    avatar_url: null,
-    bio: null,
-  });
-
-  if (insertError) {
-    if (insertError.code === "23505") {
-      const { data: ownProfile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (ownProfile) {
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ username })
-          .eq("id", user.id);
-
-        if (updateError?.code === "23505") {
-          return { error: "Username taken" };
-        }
-        if (updateError) {
-          return { error: updateError.message };
-        }
-      } else {
-        return { error: "Username taken" };
-      }
-    } else {
-      return { error: insertError.message };
-    }
-  }
-
   await supabase.auth.updateUser({
-    data: { username },
+    data: { onboarding_completed: false },
   });
 
   revalidatePath("/", "layout");
-  revalidatePath("/profile");
-  revalidatePath(`/u/${username}`);
-  redirect("/profile");
+  redirect("/onboarding");
 }

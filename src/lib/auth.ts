@@ -1,4 +1,6 @@
 import type { User } from "@supabase/supabase-js";
+import { parsePreferredCategories } from "@/lib/media-order";
+import type { MediaType } from "@/lib/types";
 
 export interface AuthUserSummary {
   id: string;
@@ -6,15 +8,18 @@ export interface AuthUserSummary {
   name: string | null;
   avatarUrl: string | null;
   username: string | null;
+  preferredCategories: MediaType[];
 }
 
 export function toAuthUserSummary(
   user: User | null,
-  username: string | null = null
+  username: string | null = null,
+  preferredCategories: MediaType[] | null = null
 ): AuthUserSummary | null {
   if (!user) return null;
 
   const meta = user.user_metadata ?? {};
+  const fromMeta = parsePreferredCategories(meta.preferred_categories);
 
   return {
     id: user.id,
@@ -28,6 +33,7 @@ export function toAuthUserSummary(
       (typeof meta.picture === "string" && meta.picture) ||
       null,
     username,
+    preferredCategories: preferredCategories ?? fromMeta,
   };
 }
 

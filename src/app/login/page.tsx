@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import BrandMark from "@/components/BrandMark";
 import { signInWithEmail, signUpWithEmail } from "@/app/actions/auth";
 import { cn } from "@/lib/cn";
-import { USERNAME_MAX_LEN } from "@/lib/username";
 import { createClient } from "@/utils/supabase/client";
 
 type AuthMode = "signin" | "signup";
@@ -104,7 +103,6 @@ function LoginForm() {
             autoComplete="new-password"
             disabled={oauthLoading}
           />
-          <UsernameField disabled={oauthLoading} />
           {error ? <AuthError message={error} /> : null}
           <SubmitButton disabled={oauthLoading} pendingLabel="Creating account…">
             Create account
@@ -221,41 +219,6 @@ function PasswordField({
         disabled={disabled}
         className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/[0.18] disabled:cursor-not-allowed disabled:opacity-60"
       />
-    </label>
-  );
-}
-
-function UsernameField({ disabled }: { disabled?: boolean }) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-        Username
-      </span>
-      <div className="flex overflow-hidden rounded-md border border-white/[0.08] bg-white/[0.04] focus-within:border-white/[0.18]">
-        <span className="flex items-center border-r border-zinc-800 px-3 text-sm text-zinc-500">
-          /u/
-        </span>
-        <input
-          type="text"
-          name="username"
-          required
-          autoComplete="username"
-          placeholder="cyberfan"
-          maxLength={USERNAME_MAX_LEN}
-          disabled={disabled}
-          pattern="[A-Za-z0-9_]{3,24}"
-          title="Letters, numbers, and underscores only. 3–24 characters."
-          onInput={(e) => {
-            e.currentTarget.value = e.currentTarget.value
-              .toLowerCase()
-              .replace(/\s/g, "");
-          }}
-          className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-60"
-        />
-      </div>
-      <p className="text-xs text-zinc-500">
-        Letters, numbers, and underscores only. 3–24 characters.
-      </p>
     </label>
   );
 }

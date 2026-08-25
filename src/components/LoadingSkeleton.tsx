@@ -136,36 +136,30 @@ export function ProfilePageSkeleton() {
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
       <header className="flex flex-col items-center gap-3">
-        <div className="h-24 w-24 animate-pulse rounded-full bg-zinc-800" />
-        <div className="h-8 w-40 animate-pulse rounded bg-zinc-800" />
-        <div className="h-4 w-64 max-w-full animate-pulse rounded bg-zinc-800/70" />
+        <div className="h-24 w-24 rounded-full shader-pulse" />
+        <div className="h-8 w-40 shader-pulse" />
+        <div className="h-4 w-64 max-w-full shader-pulse" />
       </header>
 
       <section className="space-y-8">
         <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
           {(["movie", "tv", "game", "book"] as const).map((type) => (
             <div key={type} className="space-y-2.5">
-              <div className="h-4 w-20 animate-pulse rounded bg-zinc-800" />
+              <div className="h-4 w-20 shader-pulse" />
               <p className="sr-only">Loading {MEDIA_TYPE_LABELS[type]}</p>
               <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
                 {Array.from({ length: 4 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-[2/3] animate-pulse rounded-lg bg-zinc-800"
-                  />
+                  <div key={i} className="aspect-[2/3] shader-pulse" />
                 ))}
               </div>
             </div>
           ))}
         </div>
         <div className="mx-auto w-full space-y-2.5 md:max-w-[calc(50%-1rem)]">
-          <div className="h-4 w-24 animate-pulse rounded bg-zinc-800" />
+          <div className="h-4 w-24 shader-pulse" />
           <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
             {Array.from({ length: 4 }, (_, i) => (
-              <div
-                key={i}
-                className="aspect-[2/3] animate-pulse rounded-lg bg-zinc-800"
-              />
+              <div key={i} className="aspect-[2/3] shader-pulse" />
             ))}
           </div>
         </div>

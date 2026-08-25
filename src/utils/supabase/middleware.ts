@@ -10,6 +10,15 @@ function metaUsername(user: {
     : null;
 }
 
+function metaOnboardingCompleted(user: {
+  user_metadata?: Record<string, unknown>;
+}): boolean | null {
+  const value = user.user_metadata?.onboarding_completed;
+  if (value === true) return true;
+  if (value === false) return false;
+  return null;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -81,16 +90,41 @@ export async function updateSession(request: NextRequest) {
 
   // Prefer JWT metadata so media-page navigations skip a profiles round-trip.
   let username = metaUsername(user);
-  if (!username || isGateRoute) {
-    const { data: profile } = await supabase
+  let onboardingCompleted = metaOnboardingCompleted(user);
+
+  if (!username || isGateRoute || onboardingCompleted === false) {
+    const withFlag = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, onboarding_completed")
       .eq("id", user.id)
       .maybeSingle();
 
-    username =
-      typeof profile?.username === "string" ? profile.username : null;
+    const profile = withFlag.error
+      ? (
+          await supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", user.id)
+            .maybeSingle()
+        ).data
+      : withFlag.data;
+
+    if (typeof profile?.username === "string") {
+      username = profile.username;
+    }
+    if (
+      profile &&
+      "onboarding_completed" in profile &&
+      typeof profile.onboarding_completed === "boolean"
+    ) {
+      onboardingCompleted = profile.onboarding_completed;
+    }
   }
+
+  // Legacy accounts: username exists, flag never set on the JWT → already done.
+  const onboardingDone =
+    onboardingCompleted === true ||
+    (onboardingCompleted !== false && Boolean(username));
 
   if (!username && !isAuthRoute) {
     const onboardingUrl = request.nextUrl.clone();
@@ -99,7 +133,14 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(onboardingUrl);
   }
 
-  if (username && pathname === "/onboarding") {
+  if (username && !onboardingDone && !isAuthRoute) {
+    const onboardingUrl = request.nextUrl.clone();
+    onboardingUrl.pathname = "/onboarding";
+    onboardingUrl.search = "";
+    return NextResponse.redirect(onboardingUrl);
+  }
+
+  if (username && onboardingDone && pathname === "/onboarding") {
     const publicUrl = request.nextUrl.clone();
     publicUrl.pathname = `/u/${username}`;
     publicUrl.search = "";
@@ -107,10 +148,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (username && (pathname === "/login" || pathname === "/profile")) {
-    const publicUrl = request.nextUrl.clone();
-    publicUrl.pathname = `/u/${username}`;
-    publicUrl.search = "";
-    return NextResponse.redirect(publicUrl);
+    const dest = request.nextUrl.clone();
+    dest.pathname = onboardingDone ? `/u/${username}` : "/onboarding";
+    dest.search = "";
+    return NextResponse.redirect(dest);
   }
 
   if (!username && pathname === "/login") {

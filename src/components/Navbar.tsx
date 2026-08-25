@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import NavLink from "@/components/NavLink";
-import { NAV_LINKS } from "@/lib/constants";
+import { navLinksForPreferences } from "@/lib/media-order";
 import { cn } from "@/lib/cn";
 import { profilePath, type AuthUserSummary } from "@/lib/auth";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
@@ -27,6 +27,7 @@ export default function Navbar({ user }: NavbarProps) {
   const profileHref = profilePath(user?.username);
   const onProfile =
     Boolean(user?.username) && displayPath === `/u/${user?.username}`;
+  const links = navLinksForPreferences(user?.preferredCategories);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[rgba(10,10,11,0.85)] backdrop-blur-[12px]">
@@ -40,6 +41,7 @@ export default function Navbar({ user }: NavbarProps) {
           </NavLink>
 
           <HeaderNav
+            links={links}
             displayPath={displayPath}
             className="ml-10 hidden h-full md:flex"
           />
@@ -65,6 +67,7 @@ export default function Navbar({ user }: NavbarProps) {
         </div>
 
         <HeaderNav
+          links={links}
           displayPath={displayPath}
           className="flex h-11 md:hidden"
         />
@@ -74,9 +77,11 @@ export default function Navbar({ user }: NavbarProps) {
 }
 
 function HeaderNav({
+  links,
   displayPath,
   className,
 }: {
+  links: { href: string; label: string }[];
   displayPath: string;
   className?: string;
 }) {
@@ -89,7 +94,7 @@ function HeaderNav({
   });
 
   const activeHref =
-    NAV_LINKS.find((link) =>
+    links.find((link) =>
       link.href === "/"
         ? displayPath === "/"
         : displayPath.startsWith(link.href)
@@ -146,7 +151,7 @@ function HeaderNav({
         className
       )}
     >
-      {NAV_LINKS.map((link) => {
+      {links.map((link) => {
         const active = link.href === activeHref;
 
         return (

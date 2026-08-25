@@ -1,4 +1,5 @@
 import type { MediaType } from "@/lib/types";
+import { navLinksForPreferences } from "@/lib/media-order";
 
 /** Category grids: 4 rows × max 6 columns, two pages (initial + load more). */
 export const MEDIA_GRID_ROWS = 4;
@@ -6,14 +7,7 @@ export const MEDIA_GRID_MAX_COLS = 6;
 export const CATEGORY_TRENDING_LIMIT =
   MEDIA_GRID_ROWS * MEDIA_GRID_MAX_COLS * 2;
 
-export const NAV_LINKS: { href: string; label: string }[] = [
-  { href: "/", label: "Home" },
-  { href: "/movies", label: "Movies" },
-  { href: "/tv", label: "TV" },
-  { href: "/games", label: "Games" },
-  { href: "/books", label: "Books" },
-  { href: "/music", label: "Music" },
-];
+export const NAV_LINKS = navLinksForPreferences([]);
 
 export const CATEGORY_META: Record<
   MediaType,

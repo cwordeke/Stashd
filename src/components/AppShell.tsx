@@ -7,6 +7,7 @@ import { StashProvider } from "@/context/StashContext";
 import Navbar from "@/components/Navbar";
 import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
+import { parsePreferredCategories } from "@/lib/media-order";
 import {
   createClient,
   syncBrowserSessionFromCookies,
@@ -62,7 +63,7 @@ export default function AppShell({ children }: AppShellProps) {
       if (!username) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("username")
+          .select("username, preferred_categories")
           .eq("id", nextUser.id)
           .maybeSingle();
 
@@ -71,11 +72,22 @@ export default function AppShell({ children }: AppShellProps) {
         username =
           typeof profile?.username === "string" ? profile.username : null;
 
+        const preferred = parsePreferredCategories(
+          profile?.preferred_categories
+        );
+
         if (username) {
           void supabase.auth.updateUser({
-            data: { username },
+            data: {
+              username,
+              preferred_categories: preferred,
+            },
           });
         }
+
+        setUser(toAuthUserSummary(nextUser, username, preferred));
+        setAuthReady(true);
+        return;
       }
 
       setUser(toAuthUserSummary(nextUser, username));
@@ -102,11 +114,13 @@ export default function AppShell({ children }: AppShellProps) {
     void syncBrowserSessionFromCookies();
   }, [pathname]);
 
+  const hideNav = pathname === "/onboarding";
+
   return (
     <NavigationPendingProvider>
       <StashProvider isAuthenticated={Boolean(user)} authReady={authReady}>
         <div className="flex min-h-screen flex-col">
-          <Navbar user={user} />
+          {hideNav ? null : <Navbar user={user} />}
           <MainContent>{children}</MainContent>
         </div>
       </StashProvider>

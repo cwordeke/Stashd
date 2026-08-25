@@ -36,9 +36,8 @@ import {
   type StashTabItem,
   type WatchlistItem,
 } from "@/lib/profile-tabs";
+import { orderedMediaTypes } from "@/lib/media-order";
 import { emptyShelves, type MediaType, type StashShelves } from "@/lib/types";
-
-const GRID_TYPES: MediaType[] = ["movie", "tv", "game", "book"];
 
 interface PublicProfileViewProps {
   username: string;
@@ -58,6 +57,7 @@ interface PublicProfileViewProps {
   initialIsFollowing: boolean;
   initialTab?: ProfileTab;
   initialLoadedTabs?: ProfileTab[];
+  preferredCategories?: MediaType[];
 }
 
 export default function PublicProfileView({
@@ -78,6 +78,7 @@ export default function PublicProfileView({
   initialIsFollowing,
   initialTab = "top4",
   initialLoadedTabs = [initialTab],
+  preferredCategories = [],
 }: PublicProfileViewProps) {
   const pathname = usePathname();
   const [tab, setTab] = useState<ProfileTab>(initialTab);
@@ -98,6 +99,9 @@ export default function PublicProfileView({
   const [loadingTab, setLoadingTab] = useState<ProfileTab | null>(null);
 
   const displayShelves = isOwner ? optimisticShelves : shelves;
+  const orderedTypes = orderedMediaTypes(preferredCategories);
+  const leadingTypes = orderedTypes.slice(0, 4);
+  const trailingTypes = orderedTypes.slice(4);
 
   const listRef = useRef<HTMLUListElement>(null);
   const tabRefs = useRef<Map<ProfileTab, HTMLButtonElement>>(new Map());
@@ -308,7 +312,7 @@ export default function PublicProfileView({
             {!showTabLoading && tab === "top4" ? (
               <section className="w-full space-y-8">
                 <div className="grid w-full grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
-                  {GRID_TYPES.map((type) => (
+                  {leadingTypes.map((type) => (
                     <Top4Shelf
                       key={type}
                       type={type}
@@ -318,13 +322,18 @@ export default function PublicProfileView({
                   ))}
                 </div>
 
-                <div className="mx-auto w-full md:max-w-[calc(50%-1rem)]">
-                  <Top4Shelf
-                    type="music"
-                    items={displayShelves.music}
-                    editable={isOwner}
-                  />
-                </div>
+                {trailingTypes.map((type) => (
+                  <div
+                    key={type}
+                    className="mx-auto w-full md:max-w-[calc(50%-1rem)]"
+                  >
+                    <Top4Shelf
+                      type={type}
+                      items={displayShelves[type] ?? emptyShelves()[type]}
+                      editable={isOwner}
+                    />
+                  </div>
+                ))}
 
                 <ProfileRecentlyLogged entries={recentDiary} />
               </section>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { ProfilePageSkeleton } from "@/components/LoadingSkeleton";
 import PublicProfileView from "@/components/PublicProfileView";
 import { fetchProfileTabData } from "@/app/actions/profile-tabs";
 import { getDiaryLogStats } from "@/app/actions/profile-media";
@@ -9,6 +10,7 @@ import {
   getProfileFollowStats,
 } from "@/app/actions/social";
 import { getProfileByUsername } from "@/lib/profile";
+import { parsePreferredCategories } from "@/lib/media-order";
 import { parseProfileTab } from "@/lib/profile-tabs";
 import { emptyShelves } from "@/lib/types";
 import { createClient } from "@/utils/supabase/server";
@@ -52,6 +54,14 @@ export default async function PublicProfilePage({
   const auth = await supabase.auth.getUser();
   const viewerId = auth.data.user?.id ?? null;
   const isOwner = viewerId === profile.id;
+  const preferredCategories =
+    profile.preferredCategories.length > 0
+      ? profile.preferredCategories
+      : isOwner
+        ? parsePreferredCategories(
+            auth.data.user?.user_metadata?.preferred_categories
+          )
+        : [];
 
   // Always: sidebar stats. Tab content: only the active tab.
   const [ratingStats, followStats, diaryLogStats, isFollowing, tabPayload] =
@@ -73,13 +83,7 @@ export default async function PublicProfilePage({
   };
 
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center text-sm text-zinc-500">
-          Loading profile…
-        </div>
-      }
-    >
+    <Suspense fallback={<ProfilePageSkeleton />}>
       <PublicProfileView
         username={profile.username}
         avatarUrl={profile.avatarUrl}
@@ -98,6 +102,7 @@ export default async function PublicProfilePage({
         initialIsFollowing={isFollowing}
         initialTab={initialTab}
         initialLoadedTabs={[initialTab]}
+        preferredCategories={preferredCategories}
       />
     </Suspense>
   );
