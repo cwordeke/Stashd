@@ -269,8 +269,8 @@ export default function PublicProfileView({
         </ul>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
-        <aside className="space-y-6 lg:border-r lg:border-zinc-800/80 lg:pr-6">
+      <div className="grid gap-8 lg:grid-cols-[176px_minmax(0,1fr)] lg:gap-8">
+        <aside className="space-y-5 lg:border-r lg:border-zinc-800/80 lg:pr-5">
           <section>
             <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
               Bio

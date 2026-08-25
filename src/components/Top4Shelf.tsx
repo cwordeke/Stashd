@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import StashPosterTilt from "@/components/StashPosterTilt";
-import { useNavigationPending } from "@/context/NavigationPendingContext";
+import Top4PickerModal from "@/components/Top4PickerModal";
 import { useStash } from "@/context/StashContext";
 import { cn } from "@/lib/cn";
 import {
@@ -24,19 +24,12 @@ export default function Top4Shelf({
   items,
   editable = false,
 }: Top4ShelfProps) {
-  const router = useRouter();
-  const { beginNavigation } = useNavigationPending();
   const { removeFromStash } = useStash();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const slots: StashSlot[] = [...items];
   while (slots.length < 4) slots.push(null);
   const label = MEDIA_TYPE_LABELS[type];
-
-  function openTypeSearch() {
-    const href = `/search?type=${type}`;
-    beginNavigation(href);
-    router.push(href);
-  }
 
   return (
     <section className="space-y-2.5">
@@ -91,7 +84,7 @@ export default function Top4Shelf({
               <StashPosterTilt
                 key={`empty-${type}-${index}`}
                 as="button"
-                onClick={openTypeSearch}
+                onClick={() => setPickerOpen(true)}
                 title={`Add to ${label}`}
                 className="flex items-center justify-center bg-zinc-900/80 hover:bg-zinc-800/90"
               >
@@ -111,6 +104,14 @@ export default function Top4Shelf({
           );
         })}
       </div>
+
+      {editable && pickerOpen ? (
+        <Top4PickerModal
+          type={type}
+          open
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }

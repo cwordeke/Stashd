@@ -31,7 +31,7 @@ export default function ProfileStats({
     >
       {stats.map((stat) => (
         <div key={stat.label} className="min-w-0">
-          <p className="text-xl font-semibold tabular-nums tracking-tight text-white">
+          <p className="text-lg font-semibold tabular-nums tracking-tight text-white">
             {formatCount(stat.value)}
           </p>
           <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
