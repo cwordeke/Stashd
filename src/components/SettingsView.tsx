@@ -40,6 +40,8 @@ interface SettingsViewProps {
   bio: string | null;
   email: string | null;
   preferredCategories: MediaType[];
+  initialGroup?: SettingsGroup;
+  spotifyStatus?: "success" | "error" | null;
 }
 
 export default function SettingsView({
@@ -48,11 +50,13 @@ export default function SettingsView({
   bio: initialBio,
   email,
   preferredCategories,
+  initialGroup = "account",
+  spotifyStatus = null,
 }: SettingsViewProps) {
   const router = useRouter();
   const { beginNavigation } = useNavigationPending();
   const profileHref = profilePath(username);
-  const [group, setGroup] = useState<SettingsGroup>("account");
+  const [group, setGroup] = useState<SettingsGroup>(initialGroup);
 
   const navRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<Map<SettingsGroup, HTMLButtonElement>>(new Map());
@@ -510,11 +514,10 @@ export default function SettingsView({
                   Import
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Migrate your history from other platforms. Start with
-                  Letterboxd — more integrations are on the way.
+                  Migrate your history from other platforms.
                 </p>
               </div>
-              <ImportHub />
+              <ImportHub spotifyStatus={spotifyStatus} />
             </div>
           ) : null}
         </div>

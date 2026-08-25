@@ -53,6 +53,7 @@ export async function getUserMediaLog(
     .eq("user_id", user.id)
     .eq("media_id", mediaId)
     .eq("media_type", mediaType)
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) return { ...EMPTY_MEDIA_LOG };

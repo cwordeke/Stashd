@@ -21,24 +21,28 @@ const PLATFORMS = [
     id: "letterboxd",
     name: "Letterboxd",
     blurb: "Drop your export zip to bring in films and ratings.",
+    icon: "/letterboxd-logo.svg",
     active: true,
   },
   {
     id: "spotify",
     name: "Spotify",
     blurb: "Albums you’ve saved and played on repeat.",
+    icon: "/spotifyIcon.png",
     active: false,
   },
   {
     id: "steam",
     name: "Steam",
     blurb: "Games from your library, hours and all.",
+    icon: "/steamIcon.png",
     active: false,
   },
   {
     id: "goodreads",
     name: "Goodreads",
     blurb: "Books, shelves, and star ratings.",
+    icon: "/goodreadsIcon.png",
     active: false,
   },
 ] as const;
@@ -164,20 +168,17 @@ export default function StepImport({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                {platform.id === "letterboxd" ? (
-                  <Image
-                    src="/letterboxd-logo.svg"
-                    alt=""
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 shrink-0"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="flex h-8 w-8 items-center justify-center border border-white/10 text-zinc-400">
-                    <PlatformGlyph id={platform.id} />
-                  </span>
-                )}
+                <Image
+                  src={platform.icon}
+                  alt=""
+                  width={32}
+                  height={32}
+                  unoptimized={platform.icon.endsWith(".svg")}
+                  className={cn(
+                    "h-8 w-8 shrink-0 rounded-full",
+                    platform.id === "spotify" ? "object-cover" : "object-contain"
+                  )}
+                />
                 <div>
                   <p className="text-[14px] font-medium text-white">
                     {platform.name}
@@ -301,39 +302,6 @@ function ProgressRing({ percent }: { percent: number }) {
         transform="rotate(-90 24 24)"
         className="transition-[stroke-dashoffset] duration-300 ease-out"
       />
-    </svg>
-  );
-}
-
-function PlatformGlyph({
-  id,
-}: {
-  id: Exclude<PlatformId, "letterboxd">;
-}) {
-  const className = "h-4 w-4";
-  if (id === "goodreads") {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-        <path
-          d="M6 4.5h9.5A2.5 2.5 0 0 1 18 7v12.5H8A2 2 0 0 1 6 17.5v-13Z"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
-      </svg>
-    );
-  }
-  if (id === "steam") {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-        <rect x="3.5" y="8.5" width="17" height="9" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M8 8.5V7a4 4 0 0 1 8 0v1.5" stroke="currentColor" strokeWidth="1.6" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M10 9.5v5l4.5-2.5L10 9.5Z" fill="currentColor" />
     </svg>
   );
 }

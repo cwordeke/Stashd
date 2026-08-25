@@ -8,8 +8,13 @@ export const metadata = {
   description: "Manage your Stashd account and profile",
 };
 
-export default async function SettingsPage() {
-  const [profile, supabase] = await Promise.all([
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ success?: string; error?: string }>;
+}) {
+  const [{ success, error }, profile, supabase] = await Promise.all([
+    searchParams,
     getOwnProfile(),
     createClient(),
   ]);
@@ -26,6 +31,13 @@ export default async function SettingsPage() {
     redirect("/login?next=/settings");
   }
 
+  const spotifyStatus =
+    success === "spotify"
+      ? "success"
+      : error === "spotify_failed"
+        ? "error"
+        : null;
+
   return (
     <SettingsView
       username={profile.username}
@@ -33,6 +45,8 @@ export default async function SettingsPage() {
       bio={profile.bio}
       email={user.email ?? null}
       preferredCategories={profile.preferredCategories}
+      initialGroup={spotifyStatus ? "data" : "account"}
+      spotifyStatus={spotifyStatus}
     />
   );
 }
