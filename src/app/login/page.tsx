@@ -148,7 +148,15 @@ function LoginForm() {
       </button>
 
       <p className="mt-6 text-center text-xs text-zinc-500">
-        By continuing, you agree to use Stashd with your account.
+        By continuing, you agree to our{" "}
+        <Link href="/terms" className="text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </div>
   );
