@@ -4,6 +4,7 @@ import {
   getSpotifyRedirectUri,
   signSpotifyOAuthState,
 } from "@/lib/import/spotify-oauth";
+import { getRequestOrigin } from "@/lib/site-url";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { origin } = new URL(request.url);
+  const origin = getRequestOrigin(request);
 
   if (!user) {
     return NextResponse.redirect(

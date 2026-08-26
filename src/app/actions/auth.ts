@@ -1,8 +1,14 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import {
+  DEFAULT_AUTH_NEXT,
+  getSiteUrl,
+  safeRelativePath,
+} from "@/lib/site-url";
 
 export type AuthActionResult = { error: string };
 
@@ -29,7 +35,7 @@ export async function signInWithEmail(
   }
 
   revalidatePath("/", "layout");
-  redirect("/profile");
+  redirect(safeRelativePath(formString(formData, "next"), DEFAULT_AUTH_NEXT));
 }
 
 export async function signUpWithEmail(
@@ -51,6 +57,7 @@ export async function signUpWithEmail(
     email,
     password,
     options: {
+      emailRedirectTo: `${await currentOrigin()}/auth/callback`,
       data: { onboarding_completed: false },
     },
   });
@@ -82,3 +89,16 @@ export async function signUpWithEmail(
   revalidatePath("/", "layout");
   redirect("/onboarding");
 }
+
+async function currentOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "development" ? "http" : "https");
+  if (host) {
+    return `${proto.split(",")[0].trim()}://${host.split(",")[0].trim()}`;
+  }
+  return getSiteUrl();
+}
+

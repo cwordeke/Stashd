@@ -1,11 +1,10 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Session } from "@supabase/supabase-js";
+import { getSupabaseEnv } from "@/utils/supabase/env";
 
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const { url, anonKey } = getSupabaseEnv();
+  return createBrowserClient(url, anonKey);
 }
 
 /**
@@ -20,18 +19,15 @@ export async function syncBrowserSessionFromCookies(): Promise<Session | null> {
   } = await singleton.auth.getSession();
   if (existing) return existing;
 
-  const fresh = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      isSingleton: false,
-      auth: {
-        autoRefreshToken: false,
-        persistSession: true,
-        detectSessionInUrl: false,
-      },
-    }
-  );
+  const { url, anonKey } = getSupabaseEnv();
+  const fresh = createBrowserClient(url, anonKey, {
+    isSingleton: false,
+    auth: {
+      autoRefreshToken: false,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
   const {
     data: { session },
   } = await fresh.auth.getSession();

@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import BrandMark from "@/components/BrandMark";
 import { signInWithEmail, signUpWithEmail } from "@/app/actions/auth";
 import { cn } from "@/lib/cn";
+import { DEFAULT_AUTH_NEXT, safeRelativePath } from "@/lib/site-url";
 import { createClient } from "@/utils/supabase/client";
 
 type AuthMode = "signin" | "signup";
@@ -19,6 +20,11 @@ function LoginForm() {
     searchParams.get("error") === "auth"
       ? "Sign-in failed. Please try again."
       : null
+  );
+
+  const nextPath = safeRelativePath(
+    searchParams.get("next"),
+    DEFAULT_AUTH_NEXT
   );
 
   function switchMode(next: AuthMode) {
@@ -46,7 +52,7 @@ function LoginForm() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -110,6 +116,7 @@ function LoginForm() {
         </form>
       ) : (
         <form action={handleSignIn} className="space-y-4">
+          <input type="hidden" name="next" value={nextPath} />
           <EmailField disabled={oauthLoading} />
           <PasswordField
             autoComplete="current-password"

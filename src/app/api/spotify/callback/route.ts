@@ -7,6 +7,7 @@ import {
   verifySpotifyOAuthState,
 } from "@/lib/import/spotify-oauth";
 import { importSpotifySavedAlbums } from "@/lib/import/spotify";
+import { getRequestOrigin } from "@/lib/site-url";
 
 function settingsRedirect(
   origin: string,
@@ -20,7 +21,8 @@ function settingsRedirect(
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const { origin, hostname, searchParams } = url;
+  const { hostname, searchParams } = url;
+  const origin = getRequestOrigin(request);
   const fail = (reason: string) => {
     console.error("[spotify import]", reason);
     return settingsRedirect(origin, { error: "spotify_failed" });

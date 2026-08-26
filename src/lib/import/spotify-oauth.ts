@@ -2,10 +2,20 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
+function isLoopbackUrl(value: string): boolean {
+  return /:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(value);
+}
+
 /** Spotify rejects `localhost`; loopback must be an explicit IP (RFC 8252). */
 export function getSpotifyRedirectUri(origin: string): string {
   const configured = process.env.SPOTIFY_REDIRECT_URI?.trim();
-  const raw = configured || `${origin}/api/spotify/callback`;
+  const fallback = `${origin}/api/spotify/callback`;
+  // Don't ship a leftover local redirect URI to production.
+  const raw =
+    configured &&
+    !(process.env.NODE_ENV === "production" && isLoopbackUrl(configured))
+      ? configured
+      : fallback;
   return raw.replace("://localhost", "://127.0.0.1");
 }
 

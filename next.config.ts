@@ -8,6 +8,11 @@ const remotePatterns: NonNullable<
   { protocol: "https", hostname: "covers.openlibrary.org" },
   { protocol: "https", hostname: "i.scdn.co" },
   { protocol: "https", hostname: "lh3.googleusercontent.com" },
+  {
+    protocol: "https",
+    hostname: "*.supabase.co",
+    pathname: "/storage/v1/object/public/**",
+  },
 ];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,6 +30,7 @@ if (supabaseUrl) {
 }
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns,
   },
@@ -32,6 +38,18 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "6mb",
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "DENY" },
+        ],
+      },
+    ];
   },
 };
 

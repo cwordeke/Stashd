@@ -39,10 +39,9 @@ export function openLibraryCover(
 }
 
 export function spotifyArt(
-  images?: Array<{ url: string; width?: number }> | null
+  images?: Array<{ url?: string; width?: number }> | null
 ): string | null {
   if (!images?.length) return null;
-  // Prefer mid-size (~300px) when available; else largest
   const sorted = [...images].sort(
     (a, b) => (b.width ?? 0) - (a.width ?? 0)
   );
@@ -50,7 +49,7 @@ export function spotifyArt(
 }
 
 export function spotifyArtLarge(
-  images?: Array<{ url: string; width?: number }> | null
+  images?: Array<{ url?: string; width?: number }> | null
 ): string | null {
   if (!images?.length) return null;
   const sorted = [...images].sort(

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import type { ListItem, ListSummary, MediaList } from "@/lib/profile-tabs";
-import { isMediaType, type MediaType, type UnifiedMediaItem } from "@/lib/types";
+import { isMediaType, type UnifiedMediaItem } from "@/lib/types";
 
 export type ListActionResult =
   | { ok: true; message: string; listId?: string; itemId?: string }

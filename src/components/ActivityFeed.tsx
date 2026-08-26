@@ -129,8 +129,8 @@ function UserAvatar({
   avatarUrl: string | null;
 }) {
   if (avatarUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- remote avatars vary by host
       <img
         src={avatarUrl}
         alt=""
