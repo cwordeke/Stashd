@@ -17,8 +17,9 @@ interface StashPosterTiltProps {
   className?: string;
   title?: string;
   href?: string;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
   as?: "link" | "button";
+  tiltEnabled?: boolean;
 }
 
 const RESET: CSSProperties = {
@@ -34,12 +35,17 @@ export default function StashPosterTilt({
   href,
   onClick,
   as = "link",
+  tiltEnabled = true,
 }: StashPosterTiltProps) {
   const linkRef = useRef<HTMLAnchorElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const frameRef = useRef<number | null>(null);
   const [style, setStyle] = useState<CSSProperties>(RESET);
   const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    if (!tiltEnabled) setStyle(RESET);
+  }, [tiltEnabled]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -57,7 +63,7 @@ export default function StashPosterTilt({
 
   const handleMove = useCallback(
     (event: MouseEvent<HTMLElement>) => {
-      if (reduceMotion) return;
+      if (reduceMotion || !tiltEnabled) return;
       const el = as === "button" ? buttonRef.current : linkRef.current;
       if (!el) return;
 
@@ -85,7 +91,7 @@ export default function StashPosterTilt({
         });
       });
     },
-    [as, reduceMotion]
+    [as, reduceMotion, tiltEnabled]
   );
 
   const handleLeave = useCallback(() => {
@@ -106,10 +112,10 @@ export default function StashPosterTilt({
         title={title}
         aria-label={title}
         onClick={onClick}
-        onMouseMove={handleMove}
-        onMouseLeave={handleLeave}
-        onBlur={handleLeave}
-        style={style}
+        onMouseMove={tiltEnabled ? handleMove : undefined}
+        onMouseLeave={tiltEnabled ? handleLeave : undefined}
+        onBlur={tiltEnabled ? handleLeave : undefined}
+        style={tiltEnabled ? style : RESET}
         className={classNames}
       >
         {children}
@@ -122,10 +128,12 @@ export default function StashPosterTilt({
       href={href ?? "#"}
       ref={linkRef}
       title={title}
-      onMouseMove={handleMove}
-      onMouseLeave={handleLeave}
-      onBlur={handleLeave}
-      style={style}
+      draggable={false}
+      onClick={onClick}
+      onMouseMove={tiltEnabled ? handleMove : undefined}
+      onMouseLeave={tiltEnabled ? handleLeave : undefined}
+      onBlur={tiltEnabled ? handleLeave : undefined}
+      style={tiltEnabled ? style : RESET}
       className={classNames}
     >
       {children}

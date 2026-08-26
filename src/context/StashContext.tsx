@@ -16,11 +16,13 @@ import {
   addStashItem as addStashItemAction,
   getUserStash,
   removeStashItem as removeStashItemAction,
+  reorderStashItems as reorderStashItemsAction,
   type StashItem,
 } from "@/app/actions/stash";
 import {
   STASH_TOP_N,
   countByMediaType,
+  reorderItemsByType,
   shelvesFromItems,
 } from "@/lib/stash-utils";
 import {
@@ -32,7 +34,8 @@ import {
 
 type OptimisticAction =
   | { type: "add"; item: StashItem }
-  | { type: "remove"; stashId: string; mediaKey?: string };
+  | { type: "remove"; stashId: string; mediaKey?: string }
+  | { type: "reorder"; mediaType: MediaType; orderedStashIds: string[] };
 
 interface StashState {
   shelves: StashShelves;
@@ -42,6 +45,7 @@ interface StashState {
   stashReady: boolean;
   addToStash: (item: UnifiedMediaItem) => void;
   removeFromStash: (stashId: string, item?: UnifiedMediaItem) => void;
+  reorderStash: (mediaType: MediaType, orderedStashIds: string[]) => void;
   isInStash: (item: UnifiedMediaItem) => boolean;
   getCategoryCount: (mediaType: MediaType) => number;
 }
@@ -57,6 +61,10 @@ function applyOptimistic(
       return state;
     }
     return [...state, action.item];
+  }
+
+  if (action.type === "reorder") {
+    return reorderItemsByType(state, action.mediaType, action.orderedStashIds);
   }
 
   return state.filter((item) => item.stashId !== action.stashId);
@@ -144,6 +152,7 @@ export function StashProvider({
       const optimisticItem: StashItem = {
         ...item,
         stashId: `optimistic-${key}`,
+        position: countByMediaType(optimisticItems, item.mediaType),
       };
 
       setPendingKey(key);
@@ -195,6 +204,35 @@ export function StashProvider({
     [dispatchOptimistic]
   );
 
+  const reorderStash = useCallback(
+    (mediaType: MediaType, orderedStashIds: string[]) => {
+      if (!orderedStashIds.length) return;
+
+      setItems((prev) =>
+        reorderItemsByType(prev, mediaType, orderedStashIds)
+      );
+
+      startTransition(async () => {
+        dispatchOptimistic({
+          type: "reorder",
+          mediaType,
+          orderedStashIds,
+        });
+
+        const result = await reorderStashItemsAction(
+          mediaType,
+          orderedStashIds
+        );
+
+        if (!result.ok) {
+          const nextItems = await getUserStash();
+          setItems(nextItems);
+        }
+      });
+    },
+    [dispatchOptimistic]
+  );
+
   const value = useMemo(
     () => ({
       shelves,
@@ -203,6 +241,7 @@ export function StashProvider({
       stashReady,
       addToStash,
       removeFromStash,
+      reorderStash,
       isInStash,
       getCategoryCount,
     }),
@@ -213,6 +252,7 @@ export function StashProvider({
       stashReady,
       addToStash,
       removeFromStash,
+      reorderStash,
       isInStash,
       getCategoryCount,
     ]

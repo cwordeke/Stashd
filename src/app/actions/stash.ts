@@ -12,6 +12,7 @@ import { STASH_TOP_N, shelvesFromItems } from "@/lib/stash-utils";
 
 export interface StashItem extends UnifiedMediaItem {
   stashId: string;
+  position: number;
 }
 
 export type StashActionResult =
@@ -28,6 +29,7 @@ interface StashRow {
   image_url: string | null;
   release_year: string | null;
   created_at: string;
+  position?: number | null;
 }
 
 function isMediaType(value: string): value is MediaType {
@@ -45,17 +47,32 @@ function rowToStashItem(row: StashRow): StashItem | null {
     year: row.release_year ?? "—",
     thumbnail: row.image_url,
     mediaType: row.media_type,
+    position: row.position ?? 0,
   };
 }
 
 export async function getStashByUserId(userId: string): Promise<StashItem[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const ordered = await supabase
     .from("stash_items")
     .select("*")
     .eq("user_id", userId)
+    .order("position", { ascending: true })
     .order("created_at", { ascending: true });
+
+  let data = ordered.data;
+  let error = ordered.error;
+
+  if (error) {
+    const fallback = await supabase
+      .from("stash_items")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     console.error("getStashByUserId:", error.message);
@@ -206,25 +223,51 @@ export async function addStashItem(
     return { ok: false, message: "Already in your Top 4" };
   }
 
-  const { data, error } = await supabase
+  const nextPosition = count ?? 0;
+  const payload = {
+    user_id: user.id,
+    media_id: item.id,
+    media_type: item.mediaType,
+    title: item.title.trim().slice(0, 300) || "Untitled",
+    creator: item.creator?.trim().slice(0, 300) || null,
+    image_url: item.thumbnail,
+    release_year: item.year || null,
+    position: nextPosition,
+  };
+
+  let { data, error } = await supabase
     .from("stash_items")
-    .insert({
-      user_id: user.id,
-      media_id: item.id,
-      media_type: item.mediaType,
-      title: item.title.trim().slice(0, 300) || "Untitled",
-      creator: item.creator?.trim().slice(0, 300) || null,
-      image_url: item.thumbnail,
-      release_year: item.year || null,
-    })
+    .insert(payload)
     .select("*")
     .single();
+
+  if (error && /position/i.test(error.message)) {
+    const withoutPosition = {
+      user_id: payload.user_id,
+      media_id: payload.media_id,
+      media_type: payload.media_type,
+      title: payload.title,
+      creator: payload.creator,
+      image_url: payload.image_url,
+      release_year: payload.release_year,
+    };
+    const fallback = await supabase
+      .from("stash_items")
+      .insert(withoutPosition)
+      .select("*")
+      .single();
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     return { ok: false, message: error.message };
   }
 
   const stashItem = rowToStashItem(data as StashRow);
+  if (stashItem && stashItem.position === 0 && nextPosition > 0) {
+    stashItem.position = nextPosition;
+  }
   await revalidateStashPaths(user.id);
 
   return {
@@ -262,17 +305,142 @@ export async function removeStashItem(
     return { ok: false, message: "Sign in required" };
   }
 
-  const { error } = await supabase
+  const { data: removed, error } = await supabase
     .from("stash_items")
     .delete()
     .eq("id", stashId)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("media_type")
+    .maybeSingle();
 
   if (error) {
     return { ok: false, message: error.message };
   }
 
+  if (removed?.media_type && isMediaType(removed.media_type)) {
+    await persistShelfOrder(supabase, user.id, removed.media_type);
+  }
+
   await revalidateStashPaths(user.id);
 
   return { ok: true, message: "Removed from your stash" };
+}
+
+export async function reorderStashItems(
+  mediaType: MediaType,
+  orderedStashIds: string[]
+): Promise<StashActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "Sign in required" };
+  }
+
+  if (!isMediaType(mediaType) || orderedStashIds.length === 0) {
+    return { ok: false, message: "Invalid reorder" };
+  }
+
+  if (orderedStashIds.length > STASH_TOP_N) {
+    return { ok: false, message: "Top 4 only has four slots" };
+  }
+
+  const { data: rows, error: fetchError } = await supabase
+    .from("stash_items")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("media_type", mediaType);
+
+  if (fetchError) {
+    return { ok: false, message: fetchError.message };
+  }
+
+  const owned = new Set((rows ?? []).map((row) => row.id as string));
+  if (
+    orderedStashIds.length !== owned.size ||
+    orderedStashIds.some((id) => !owned.has(id))
+  ) {
+    return { ok: false, message: "Stash changed, refresh and try again" };
+  }
+
+  const persistError = await persistShelfOrder(
+    supabase,
+    user.id,
+    mediaType,
+    orderedStashIds
+  );
+  if (persistError) {
+    return { ok: false, message: persistError };
+  }
+
+  await revalidateStashPaths(user.id);
+  return { ok: true, message: "Order updated" };
+}
+
+async function persistShelfOrder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  mediaType: MediaType,
+  orderedStashIds?: string[]
+): Promise<string | null> {
+  let ids = orderedStashIds;
+
+  if (!ids) {
+    const ordered = await supabase
+      .from("stash_items")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("media_type", mediaType)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    let rows = ordered.data;
+    if (ordered.error) {
+      const fallback = await supabase
+        .from("stash_items")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("media_type", mediaType)
+        .order("created_at", { ascending: true });
+      rows = fallback.data;
+    }
+
+    ids = (rows ?? []).map((row) => row.id as string);
+  }
+
+  for (let i = 0; i < ids.length; i++) {
+    const { error } = await supabase
+      .from("stash_items")
+      .update({ position: i })
+      .eq("id", ids[i])
+      .eq("user_id", userId);
+
+    if (error) {
+      return persistOrderViaCreatedAt(supabase, userId, ids);
+    }
+  }
+
+  return null;
+}
+
+async function persistOrderViaCreatedAt(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  orderedStashIds: string[]
+): Promise<string | null> {
+  const base = Date.now();
+
+  for (let i = 0; i < orderedStashIds.length; i++) {
+    const { error } = await supabase
+      .from("stash_items")
+      .update({ created_at: new Date(base + i).toISOString() })
+      .eq("id", orderedStashIds[i])
+      .eq("user_id", userId);
+
+    if (error) return error.message;
+  }
+
+  return null;
 }
