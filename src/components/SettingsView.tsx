@@ -19,6 +19,7 @@ import PreferencesSettings from "@/components/PreferencesSettings";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
 import { profilePath } from "@/lib/auth";
 import { cn } from "@/lib/cn";
+import { notifyProfileUpdated } from "@/lib/profile-events";
 import type { MediaType } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -190,6 +191,7 @@ export default function SettingsView({
       return null;
     });
     setAvatarMessage(result.message);
+    notifyProfileUpdated();
     router.refresh();
   }
 

@@ -41,8 +41,8 @@ async function fetchTrendingForType(
 
 const getCachedTrending = unstable_cache(
   async (type: MediaType, limit: number) => fetchTrendingForType(type, limit),
-  ["trending-by-type-v6-light"],
-  { revalidate: 86400 }
+  ["trending-by-type-v7-books-resilient"],
+  { revalidate: 3600 }
 );
 
 export async function getTrendingForType(

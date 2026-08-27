@@ -9,6 +9,10 @@ import {
   yearFromDate,
   yearFromUnix,
 } from "@/lib/media";
+import {
+  openLibraryApiPath,
+  openLibraryWorkId,
+} from "@/lib/openlibrary-id";
 import { getTwitchAccessToken, getTwitchClientId } from "@/lib/twitch";
 import { getSpotifyAccessToken } from "@/lib/spotify";
 import type { MediaDetails, MediaType } from "@/lib/types";
@@ -176,11 +180,17 @@ async function getGameDetails(id: string): Promise<MediaDetails> {
 }
 
 async function getBookDetails(id: string): Promise<MediaDetails> {
-  const key = id.startsWith("/") ? id : `/${id}`;
-  const workUrl = `https://openlibrary.org${key}.json`;
+  const apiPath = openLibraryApiPath(id);
+  const workUrl = `https://openlibrary.org${apiPath}.json`;
 
-  const res = await fetch(workUrl, { next: { revalidate: 86400 } });
-  if (!res.ok) throw new Error(`Open Library details failed: ${res.status}`);
+  const res = await fetch(workUrl, {
+    next: { revalidate: 86400 },
+    headers: { Accept: "application/json" },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Open Library details failed: ${res.status}`);
+  }
 
   const data = (await res.json()) as {
     key?: string;
@@ -209,9 +219,10 @@ async function getBookDetails(id: string): Promise<MediaDetails> {
   }
 
   const coverId = data.covers?.[0];
+  const normalizedId = openLibraryWorkId(data.key ?? id);
 
   return {
-    id: data.key ?? key,
+    id: normalizedId,
     title: data.title ?? "Untitled",
     creator,
     year: yearFromDate(data.first_publish_date),

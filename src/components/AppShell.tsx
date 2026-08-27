@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NavigationPendingProvider, useNavigationPending } from "@/context/NavigationPendingContext";
 import { StashProvider } from "@/context/StashContext";
@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
 import { parsePreferredCategories } from "@/lib/media-order";
+import { PROFILE_UPDATED_EVENT } from "@/lib/profile-events";
 import {
   createClient,
   syncBrowserSessionFromCookies,
@@ -39,80 +40,84 @@ export default function AppShell({ children }: AppShellProps) {
   const [user, setUser] = useState<AuthUserSummary | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
-  useEffect(() => {
+  const syncUser = useCallback(async () => {
     const supabase = createClient();
-    let cancelled = false;
+    await syncBrowserSessionFromCookies();
 
-    async function syncUser() {
-      await syncBrowserSessionFromCookies();
-      if (cancelled) return;
+    const {
+      data: { user: nextUser },
+    } = await supabase.auth.getUser();
 
-      const {
-        data: { user: nextUser },
-      } = await supabase.auth.getUser();
-
-      if (cancelled) return;
-
-      if (!nextUser) {
-        setUser(null);
-        setAuthReady(true);
-        return;
-      }
-
-      let username = usernameFromUser(nextUser);
-      if (!username) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("username, preferred_categories")
-          .eq("id", nextUser.id)
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        username =
-          typeof profile?.username === "string" ? profile.username : null;
-
-        const preferred = parsePreferredCategories(
-          profile?.preferred_categories
-        );
-
-        if (username) {
-          void supabase.auth.updateUser({
-            data: {
-              username,
-              preferred_categories: preferred,
-            },
-          });
-        }
-
-        setUser(toAuthUserSummary(nextUser, username, preferred));
-        setAuthReady(true);
-        return;
-      }
-
-      setUser(toAuthUserSummary(nextUser, username));
+    if (!nextUser) {
+      setUser(null);
       setAuthReady(true);
+      return;
     }
 
-    void syncUser();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username, avatar_url, preferred_categories")
+      .eq("id", nextUser.id)
+      .maybeSingle();
 
+    const profileUsername =
+      typeof profile?.username === "string" ? profile.username : null;
+    const username = profileUsername ?? usernameFromUser(nextUser);
+    const preferred = parsePreferredCategories(
+      profile?.preferred_categories ??
+        nextUser.user_metadata?.preferred_categories
+    );
+    const profileAvatar =
+      typeof profile?.avatar_url === "string" ? profile.avatar_url : null;
+
+    if (profileUsername && !usernameFromUser(nextUser)) {
+      void supabase.auth.updateUser({
+        data: {
+          username: profileUsername,
+          preferred_categories: preferred,
+        },
+      });
+    }
+
+    setUser(
+      toAuthUserSummary(nextUser, username, preferred, profileAvatar)
+    );
+    setAuthReady(true);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      await syncUser();
+      if (cancelled) return;
+    })();
+
+    const supabase = createClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
       void syncUser();
     });
 
+    const onProfileUpdated = () => {
+      void syncUser();
+    };
+    window.addEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
+
     return () => {
       cancelled = true;
       subscription.unsubscribe();
+      window.removeEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
     };
-  }, []);
+  }, [syncUser]);
 
   // Email sign-in/up sets cookies via a server action, then client-navigates.
   // Re-read those cookies so the singleton client (and header) catch up.
   useEffect(() => {
     void syncBrowserSessionFromCookies();
-  }, [pathname]);
+    void syncUser();
+  }, [pathname, syncUser]);
 
   const hideNav = pathname === "/onboarding";
 

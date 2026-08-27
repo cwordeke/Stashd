@@ -1,3 +1,5 @@
+import { openLibraryWorkId } from "@/lib/openlibrary-id";
+
 export type MediaType = "movie" | "tv" | "game" | "book" | "music";
 
 /** Normalized media item across all five APIs */
@@ -68,7 +70,8 @@ export function mediaKey(item: UnifiedMediaItem): string {
 }
 
 export function mediaDetailPath(mediaType: MediaType, id: string): string {
-  return `/media/${mediaType}/${encodeURIComponent(id)}`;
+  const safeId = mediaType === "book" ? openLibraryWorkId(id) || id : id;
+  return `/media/${mediaType}/${encodeURIComponent(safeId)}`;
 }
 
 export function isMediaType(value: string): value is MediaType {

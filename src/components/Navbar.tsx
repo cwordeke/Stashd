@@ -293,6 +293,7 @@ function UserAvatar({ user }: { user: AuthUserSummary }) {
   if (user.avatarUrl) {
     return (
       <Image
+        key={user.avatarUrl}
         src={user.avatarUrl}
         alt={user.name ?? "User avatar"}
         width={32}

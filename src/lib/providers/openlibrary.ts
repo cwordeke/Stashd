@@ -1,5 +1,9 @@
 import { openLibraryCover } from "@/lib/media";
+import { openLibraryWorkId } from "@/lib/openlibrary-id";
 import type { UnifiedMediaItem } from "@/lib/types";
+
+const OPEN_LIBRARY_TIMEOUT_MS = 15_000;
+const OPEN_LIBRARY_USER_AGENT = "Stashd/1.0 (+https://github.com/stashd)";
 
 interface OpenLibraryDoc {
   key?: string;
@@ -11,33 +15,6 @@ interface OpenLibraryDoc {
 
 interface OpenLibraryResponse {
   docs?: OpenLibraryDoc[];
-}
-
-function mapDocs(docs: OpenLibraryDoc[]): UnifiedMediaItem[] {
-  return docs.map((doc, index) => ({
-    id: doc.key ?? `book-${index}`,
-    title: doc.title ?? "Untitled",
-    creator: doc.author_name?.[0] ?? "—",
-    year: doc.first_publish_year ? String(doc.first_publish_year) : "—",
-    thumbnail: openLibraryCover(doc.cover_i, "M"),
-    mediaType: "book" as const,
-  }));
-}
-
-export async function searchBooks(query: string): Promise<UnifiedMediaItem[]> {
-  const url = new URL("https://openlibrary.org/search.json");
-  url.searchParams.set("q", query);
-  url.searchParams.set("limit", "10");
-  url.searchParams.set(
-    "fields",
-    "key,title,author_name,first_publish_year,cover_i"
-  );
-
-  const res = await fetch(url.toString(), { next: { revalidate: 120 } });
-  if (!res.ok) throw new Error(`Open Library request failed: ${res.status}`);
-
-  const data = (await res.json()) as OpenLibraryResponse;
-  return mapDocs(data.docs ?? []);
 }
 
 interface OpenLibraryTrendingWork {
@@ -54,11 +31,67 @@ interface OpenLibraryTrendingResponse {
   docs?: OpenLibraryDoc[];
 }
 
-export async function getTrendingBooks(
-  limit = 20
-): Promise<UnifiedMediaItem[]> {
-  const url = "https://openlibrary.org/trending/weekly.json";
-  const res = await fetch(url, { next: { revalidate: 86400 } });
+async function openLibraryFetch(
+  url: string,
+  revalidate = 86400
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPEN_LIBRARY_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      next: { revalidate },
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": OPEN_LIBRARY_USER_AGENT,
+      },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function mapDocs(docs: OpenLibraryDoc[]): UnifiedMediaItem[] {
+  const items: UnifiedMediaItem[] = [];
+
+  for (const [index, doc] of docs.entries()) {
+    const id = openLibraryWorkId(doc.key) || `works/book-${index}`;
+    if (!id || id.startsWith("ph-")) continue;
+
+    items.push({
+      id,
+      title: doc.title ?? "Untitled",
+      creator: doc.author_name?.[0] ?? "—",
+      year: doc.first_publish_year ? String(doc.first_publish_year) : "—",
+      thumbnail: openLibraryCover(doc.cover_i, "M"),
+      mediaType: "book",
+    });
+  }
+
+  return items;
+}
+
+export async function searchBooks(query: string): Promise<UnifiedMediaItem[]> {
+  const url = new URL("https://openlibrary.org/search.json");
+  url.searchParams.set("q", query);
+  url.searchParams.set("limit", "10");
+  url.searchParams.set(
+    "fields",
+    "key,title,author_name,first_publish_year,cover_i"
+  );
+
+  const res = await openLibraryFetch(url.toString(), 120);
+  if (!res.ok) throw new Error(`Open Library request failed: ${res.status}`);
+
+  const data = (await res.json()) as OpenLibraryResponse;
+  return mapDocs(data.docs ?? []);
+}
+
+async function fetchTrendingWeekly(limit: number): Promise<UnifiedMediaItem[]> {
+  const res = await openLibraryFetch(
+    "https://openlibrary.org/trending/weekly.json"
+  );
 
   if (!res.ok) {
     throw new Error(`Open Library trending failed: ${res.status}`);
@@ -67,19 +100,22 @@ export async function getTrendingBooks(
   const data = (await res.json()) as OpenLibraryTrendingResponse;
   const works = data.works ?? [];
 
-  if (works.length) {
-    return works.slice(0, limit).map((work, index) => ({
-      id: work.key ?? `book-${index}`,
-      title: work.title ?? "Untitled",
-      creator: work.author_name?.[0] ?? work.author_names?.[0] ?? "—",
-      year: work.first_publish_year ? String(work.first_publish_year) : "—",
-      thumbnail: openLibraryCover(work.cover_i, "M"),
-      mediaType: "book" as const,
-    }));
-  }
+  if (!works.length) return [];
 
-  // Fallback if trending payload shape differs
-  return getPopularBooks(limit);
+  return works
+    .slice(0, limit)
+    .map((work, index) => {
+      const id = openLibraryWorkId(work.key) || `works/book-${index}`;
+      return {
+        id,
+        title: work.title ?? "Untitled",
+        creator: work.author_name?.[0] ?? work.author_names?.[0] ?? "—",
+        year: work.first_publish_year ? String(work.first_publish_year) : "—",
+        thumbnail: openLibraryCover(work.cover_i, "M"),
+        mediaType: "book" as const,
+      };
+    })
+    .filter((item) => Boolean(item.id) && !item.id.startsWith("ph-"));
 }
 
 export async function getPopularBooks(
@@ -94,11 +130,40 @@ export async function getPopularBooks(
     "key,title,author_name,first_publish_year,cover_i"
   );
 
-  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  const res = await openLibraryFetch(url.toString());
   if (!res.ok) throw new Error(`Open Library popular failed: ${res.status}`);
 
   const data = (await res.json()) as OpenLibraryResponse;
   return mapDocs(data.docs ?? []);
+}
+
+export async function getTrendingBooks(
+  limit = 20
+): Promise<UnifiedMediaItem[]> {
+  const sources = [
+    () => getPopularBooks(limit),
+    () => fetchTrendingWeekly(limit),
+    async () => {
+      const results = await searchBooks("bestseller fiction");
+      return results.slice(0, limit);
+    },
+  ];
+
+  for (const source of sources) {
+    try {
+      const results = await source();
+      if (results.length >= Math.min(6, limit)) {
+        return results.slice(0, limit);
+      }
+    } catch (error) {
+      console.warn(
+        "[getTrendingBooks]",
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
+
+  return [];
 }
 
 export async function getNewBooks(): Promise<UnifiedMediaItem[]> {
@@ -112,7 +177,7 @@ export async function getNewBooks(): Promise<UnifiedMediaItem[]> {
     "key,title,author_name,first_publish_year,cover_i"
   );
 
-  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  const res = await openLibraryFetch(url.toString());
   if (!res.ok) throw new Error(`Open Library new books failed: ${res.status}`);
 
   const data = (await res.json()) as OpenLibraryResponse;
