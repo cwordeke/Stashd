@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import ActivityFeed from "@/components/ActivityFeed";
+import ActivityFeedPanel from "@/components/ActivityFeedPanel";
 import NavLink from "@/components/NavLink";
 import SpotlightShelf, {
   SpotlightShelfSkeleton,
@@ -14,7 +14,7 @@ export const revalidate = 86400;
 
 async function HomeFeed({ signedIn }: { signedIn: boolean }) {
   const items = signedIn ? await getSocialFeed() : [];
-  return <ActivityFeed items={items} signedIn={signedIn} />;
+  return <ActivityFeedPanel initialItems={items} signedIn={signedIn} />;
 }
 
 async function PopularShelf() {

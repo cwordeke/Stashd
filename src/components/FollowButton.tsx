@@ -3,6 +3,7 @@
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleFollow } from "@/app/actions/social";
+import NavLink from "@/components/NavLink";
 import ProfileSettings from "@/components/ProfileSettings";
 import { cn } from "@/lib/cn";
 import type { UserRatingStats } from "@/lib/ratings";
@@ -69,8 +70,13 @@ export function ProfileIdentityHeader({
         <HeaderStat
           value={isLoggedIn && !isOwner ? optimisticFollowers : followers}
           label="Followers"
+          href={`/u/${username}/followers`}
         />
-        <HeaderStat value={following} label="Following" />
+        <HeaderStat
+          value={following}
+          label="Following"
+          href={`/u/${username}/following`}
+        />
         <div className="flex items-baseline gap-1.5">
           <dt className="sr-only">Rating average</dt>
           <dd className="inline-flex items-center gap-1 text-lg font-semibold tabular-nums tracking-tight text-white">
@@ -156,16 +162,31 @@ function useFollowToggle(
   };
 }
 
-function HeaderStat({ value, label }: { value: number; label: string }) {
+function HeaderStat({
+  value,
+  label,
+  href,
+}: {
+  value: number;
+  label: string;
+  href: string;
+}) {
   return (
     <div className="flex items-baseline gap-1.5">
       <dt className="sr-only">{label}</dt>
-      <dd className="text-lg font-semibold tabular-nums tracking-tight text-white">
-        {formatCount(value)}
+      <dd>
+        <NavLink
+          href={href}
+          className="group inline-flex items-baseline gap-1.5 rounded-sm transition hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+        >
+          <span className="text-lg font-semibold tabular-nums tracking-tight text-white group-hover:text-emerald-300">
+            {formatCount(value)}
+          </span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500 group-hover:text-emerald-400/80">
+            {label}
+          </span>
+        </NavLink>
       </dd>
-      <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
-        {label}
-      </span>
     </div>
   );
 }

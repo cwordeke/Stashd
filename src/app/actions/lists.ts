@@ -94,6 +94,7 @@ async function touchListUpdatedAt(
 }
 
 async function revalidateListPaths(userId: string, listId?: string) {
+  revalidatePath("/");
   revalidatePath("/profile");
   const supabase = await createClient();
   const username = await getUsername(supabase, userId);

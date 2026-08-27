@@ -91,6 +91,8 @@ export async function toggleFollow(
   const names = await usernamesByIds(supabase, [user.id, targetUserId]);
   for (const username of names.values()) {
     revalidatePath(`/u/${username}`);
+    revalidatePath(`/u/${username}/followers`);
+    revalidatePath(`/u/${username}/following`);
   }
   revalidatePath("/");
 
@@ -142,6 +144,73 @@ export async function checkIfFollowing(targetUserId: string): Promise<boolean> {
 
   if (error) return false;
   return Boolean(data);
+}
+
+export async function getFollowers(userId: string): Promise<SocialUser[]> {
+  if (!userId) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("following_id", userId);
+
+  if (error || !data?.length) {
+    if (error) console.error("[getFollowers]", error.message);
+    return [];
+  }
+
+  const ids = data
+    .map((row) => row.follower_id)
+    .filter((id): id is string => typeof id === "string");
+
+  return profilesForIds(supabase, ids);
+}
+
+export async function getFollowing(userId: string): Promise<SocialUser[]> {
+  if (!userId) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", userId);
+
+  if (error || !data?.length) {
+    if (error) console.error("[getFollowing]", error.message);
+    return [];
+  }
+
+  const ids = data
+    .map((row) => row.following_id)
+    .filter((id): id is string => typeof id === "string");
+
+  return profilesForIds(supabase, ids);
+}
+
+async function profilesForIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[]
+): Promise<SocialUser[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, avatar_url")
+    .in("id", unique)
+    .order("username", { ascending: true });
+
+  if (error || !data) {
+    if (error) console.error("[profilesForIds]", error.message);
+    return [];
+  }
+
+  return data.map((row) => ({
+    id: row.id as string,
+    username: row.username as string,
+    avatar_url: (row.avatar_url as string | null) ?? null,
+  }));
 }
 
 export async function searchUsers(query: string): Promise<SocialUser[]> {

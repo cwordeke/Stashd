@@ -289,7 +289,7 @@ export default function PublicProfileView({
             </div>
           </section>
 
-          <ProfileStats social={socialStats} />
+          <ProfileStats username={username} social={socialStats} />
 
           <section>
             <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">

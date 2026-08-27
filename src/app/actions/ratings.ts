@@ -218,6 +218,7 @@ export async function rateMedia(
   await markCompletedAfterRating(user.id, mediaId, mediaType, meta);
 
   revalidatePath(mediaDetailPath(mediaType, mediaId));
+  revalidatePath("/");
 
   return { ok: true, rating: clamped, message: "Rating saved" };
 }
