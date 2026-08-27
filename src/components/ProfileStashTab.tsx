@@ -51,7 +51,7 @@ export default function ProfileStashTab({ items }: ProfileStashTabProps) {
     return (
       <EmptyPanel
         title="Nothing in Stash yet"
-        body="Rated or liked media will show up here."
+        body="Rated, liked, or logged media will show up here."
       />
     );
   }

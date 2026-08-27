@@ -7,6 +7,7 @@ import {
   type StashTabItem,
   type WatchlistItem,
 } from "@/lib/profile-tabs";
+import { isCompletedStatus } from "@/lib/media-status";
 import { isMediaType, type MediaType } from "@/lib/types";
 
 interface RatingRow {
@@ -212,13 +213,16 @@ function mergeMeta(
   }
 }
 
-/** Rated + liked (+ diary enrichment) items for the profile Stash tab. */
+const STASH_LOG_OR_FILTER =
+  "is_liked.eq.true,status.eq.watched,status.eq.played,status.eq.read,status.eq.listened";
+
+/** Rated, liked, completed, or diary-logged items for the profile Stash tab. */
 export async function getStashTabItems(
   userId: string
 ): Promise<StashTabItem[]> {
   const supabase = await createClient();
 
-  const [ratingsRes, likesRes, diaryRes, stashRes] = await Promise.all([
+  const [ratingsRes, logsRes, diaryRes, stashRes] = await Promise.all([
     supabase
       .from("user_ratings")
       .select(
@@ -231,7 +235,7 @@ export async function getStashTabItems(
         "media_id, media_type, is_liked, on_list, status, title, creator, image_url, release_year, updated_at, created_at"
       )
       .eq("user_id", userId)
-      .eq("is_liked", true),
+      .or(STASH_LOG_OR_FILTER),
     supabase
       .from("diary_entries")
       .select(
@@ -262,17 +266,16 @@ export async function getStashTabItems(
     }));
   }
 
-  let likeRows = (likesRes.data as LogRow[] | null) ?? [];
-  if (likesRes.error) {
+  let logRows = (logsRes.data as LogRow[] | null) ?? [];
+  if (logsRes.error) {
     const fallback = await supabase
       .from("user_media_logs")
-      .select("media_id, media_type, is_liked, updated_at")
+      .select("media_id, media_type, is_liked, status, updated_at")
       .eq("user_id", userId)
-      .eq("is_liked", true);
-    likeRows = ((fallback.data as LogRow[] | null) ?? []).map((row) => ({
+      .or(STASH_LOG_OR_FILTER);
+    logRows = ((fallback.data as LogRow[] | null) ?? []).map((row) => ({
       ...row,
       on_list: null,
-      status: null,
       title: null,
       creator: null,
       image_url: null,
@@ -315,14 +318,18 @@ export async function getStashTabItems(
     map.set(key, item);
   }
 
-  for (const row of likeRows) {
+  for (const row of logRows) {
     if (!isMediaType(row.media_type)) continue;
+    const liked = Boolean(row.is_liked);
+    const completed = isCompletedStatus(row.status);
+    if (!liked && !completed) continue;
+
     const key = keyOf(row.media_type, row.media_id);
     const existing = map.get(key);
     const meta = stashMeta.get(key);
 
     if (existing) {
-      existing.liked = true;
+      if (liked) existing.liked = true;
       mergeMeta(existing, row);
       mergeMeta(existing, meta ?? {});
       const ts = row.updated_at || row.created_at;
@@ -338,7 +345,7 @@ export async function getStashTabItems(
         year: row.release_year || meta?.release_year || "—",
         thumbnail: row.image_url || meta?.image_url || null,
         rating: null,
-        liked: true,
+        liked,
         addedAt: row.updated_at || row.created_at,
       });
     }
@@ -358,7 +365,7 @@ export async function getStashTabItems(
       ) {
         existing.addedAt = row.watched_on;
       }
-    } else if (row.is_liked || asRating(row.rating) != null) {
+    } else {
       map.set(key, {
         id: row.media_id,
         mediaType: row.media_type,

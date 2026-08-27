@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import LetterboxdImportModal from "@/components/LetterboxdImportModal";
+import SteamImportModal from "@/components/SteamImportModal";
 import { cn } from "@/lib/cn";
 
 const INTEGRATIONS = [
@@ -29,7 +30,7 @@ const INTEGRATIONS = [
     description: "Sync games you’ve played from your Steam library.",
     icon: "/steamIcon.png",
     href: null,
-    active: false,
+    active: true,
   },
   {
     id: "spotify",
@@ -50,6 +51,7 @@ export default function ImportHub({
   spotifyStatus = null,
 }: ImportHubProps) {
   const [letterboxdOpen, setLetterboxdOpen] = useState(false);
+  const [steamOpen, setSteamOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -132,6 +134,7 @@ export default function ImportHub({
               disabled={!active}
               onClick={() => {
                 if (integration.id === "letterboxd") setLetterboxdOpen(true);
+                if (integration.id === "steam") setSteamOpen(true);
               }}
               aria-disabled={!active}
               className={cardClass}
@@ -145,6 +148,10 @@ export default function ImportHub({
       <LetterboxdImportModal
         open={letterboxdOpen}
         onClose={() => setLetterboxdOpen(false)}
+      />
+      <SteamImportModal
+        open={steamOpen}
+        onClose={() => setSteamOpen(false)}
       />
     </div>
   );

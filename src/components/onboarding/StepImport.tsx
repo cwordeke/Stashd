@@ -7,6 +7,7 @@ import {
   type DragEvent,
 } from "react";
 import { motion } from "framer-motion";
+import SteamImportModal from "@/components/SteamImportModal";
 import { processImportBatch } from "@/app/actions/import";
 import { cn } from "@/lib/cn";
 import {
@@ -36,7 +37,7 @@ const PLATFORMS = [
     name: "Steam",
     blurb: "Games from your library, hours and all.",
     icon: "/steamIcon.png",
-    active: false,
+    active: true,
   },
   {
     id: "goodreads",
@@ -46,8 +47,6 @@ const PLATFORMS = [
     active: false,
   },
 ] as const;
-
-type PlatformId = (typeof PLATFORMS)[number]["id"];
 
 interface StepImportProps {
   onContinue: () => void;
@@ -64,7 +63,7 @@ export default function StepImport({
   const [percent, setPercent] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [comingSoon, setComingSoon] = useState<PlatformId | null>(null);
+  const [steamOpen, setSteamOpen] = useState(false);
 
   async function handleFile(file: File | undefined) {
     if (!file || importing) return;
@@ -240,16 +239,21 @@ export default function StepImport({
                   {importing ? "Importing…" : "Choose file"}
                 </button>
               </div>
+            ) : platform.id === "steam" ? (
+              <button
+                type="button"
+                onClick={() => setSteamOpen(true)}
+                className="mt-4 w-full border border-white/10 px-3 py-2 text-[12px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+              >
+                Connect
+              </button>
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  setComingSoon(platform.id);
-                  window.setTimeout(() => setComingSoon(null), 1600);
-                }}
-                className="mt-4 w-full border border-white/10 px-3 py-2 text-[12px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+                disabled
+                className="mt-4 w-full cursor-not-allowed border border-white/10 px-3 py-2 text-[12px] font-medium text-zinc-500 opacity-60"
               >
-                {comingSoon === platform.id ? "Coming soon" : "Connect"}
+                Coming soon
               </button>
             )}
           </motion.div>
@@ -270,6 +274,12 @@ export default function StepImport({
       >
         {importing ? "Importing…" : "Continue"}
       </button>
+
+      <SteamImportModal
+        open={steamOpen}
+        onClose={() => setSteamOpen(false)}
+        onSuccess={() => onImported()}
+      />
     </div>
   );
 }

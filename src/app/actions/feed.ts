@@ -90,6 +90,114 @@ function feedTimestamp(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function mediaMetaKey(mediaType: string, mediaId: string): string {
+  return `${mediaType}:${mediaId}`;
+}
+
+type MediaMetaRow = {
+  title?: string | null;
+  creator?: string | null;
+  image_url?: string | null;
+  release_year?: string | null;
+};
+
+type FeedRatingRow = {
+  id: string;
+  user_id: string;
+  media_id: string;
+  media_type: string;
+  rating: number | string | null;
+  title?: string | null;
+  creator?: string | null;
+  image_url?: string | null;
+  release_year?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+};
+
+function mergeMediaMeta(
+  target: MediaMetaRow,
+  source: MediaMetaRow | undefined
+): MediaMetaRow {
+  if (!source) return target;
+  return {
+    title: target.title ?? source.title ?? null,
+    creator: target.creator ?? source.creator ?? null,
+    image_url: target.image_url ?? source.image_url ?? null,
+    release_year: target.release_year ?? source.release_year ?? null,
+  };
+}
+
+function buildMediaMetaMap(
+  rows: Array<Record<string, unknown>>
+): Map<string, MediaMetaRow> {
+  const map = new Map<string, MediaMetaRow>();
+
+  for (const rec of rows) {
+    const mediaType =
+      typeof rec.media_type === "string" ? rec.media_type : "";
+    const mediaId =
+      typeof rec.media_id === "string"
+        ? rec.media_id
+        : String(rec.media_id ?? "");
+    if (!mediaType || !mediaId) continue;
+
+    const key = mediaMetaKey(mediaType, mediaId);
+    const source: MediaMetaRow = {
+      title: typeof rec.title === "string" ? rec.title : null,
+      creator: typeof rec.creator === "string" ? rec.creator : null,
+      image_url: typeof rec.image_url === "string" ? rec.image_url : null,
+      release_year:
+        typeof rec.release_year === "string" ? rec.release_year : null,
+    };
+    map.set(key, mergeMediaMeta(map.get(key) ?? {}, source));
+  }
+
+  return map;
+}
+
+async function fetchFeedRatings(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  followingIds: string[]
+): Promise<{ data: FeedRatingRow[]; error: { message: string } | null }> {
+  const full = await supabase
+    .from("user_ratings")
+    .select(
+      "id, user_id, media_id, media_type, title, creator, image_url, release_year, rating, updated_at, created_at"
+    )
+    .in("user_id", followingIds)
+    .order("updated_at", { ascending: false })
+    .limit(SOURCE_LIMIT);
+
+  if (!full.error) {
+    return { data: (full.data ?? []) as FeedRatingRow[], error: null };
+  }
+
+  const fallback = await supabase
+    .from("user_ratings")
+    .select(
+      "id, user_id, media_id, media_type, rating, updated_at, created_at"
+    )
+    .in("user_id", followingIds)
+    .order("updated_at", { ascending: false })
+    .limit(SOURCE_LIMIT);
+
+  if (fallback.error) {
+    return { data: [], error: fallback.error };
+  }
+
+  return {
+    data: ((fallback.data ?? []) as FeedRatingRow[]).map((row) => ({
+      ...row,
+      title: null,
+      creator: null,
+      image_url: null,
+      release_year: null,
+    })),
+    error: null,
+  };
+}
+
 function rowMedia(
   rec: Record<string, unknown>,
   mediaType: MediaType
@@ -175,7 +283,7 @@ async function loadSocialFeed(): Promise<FeedItem[]> {
   const [
     logsResult,
     followsResult,
-    ratingsResult,
+    ratingsFetch,
     stashResult,
     listItemsResult,
   ] = await Promise.all([
@@ -193,14 +301,7 @@ async function loadSocialFeed(): Promise<FeedItem[]> {
       .in("follower_id", followingIds)
       .order("created_at", { ascending: false })
       .limit(SOURCE_LIMIT),
-    supabase
-      .from("user_ratings")
-      .select(
-        "id, user_id, media_id, media_type, title, creator, image_url, release_year, rating, updated_at, created_at"
-      )
-      .in("user_id", followingIds)
-      .order("updated_at", { ascending: false })
-      .limit(SOURCE_LIMIT),
+    fetchFeedRatings(supabase, followingIds),
     supabase
       .from("stash_items")
       .select(
@@ -218,6 +319,11 @@ async function loadSocialFeed(): Promise<FeedItem[]> {
       .order("created_at", { ascending: false })
       .limit(SOURCE_LIMIT),
   ]);
+
+  const ratingsResult = {
+    data: ratingsFetch.data,
+    error: ratingsFetch.error,
+  };
 
   if (logsResult.error) {
     console.error("[getSocialFeed] diary:", logsResult.error.message);
@@ -284,6 +390,12 @@ async function loadSocialFeed(): Promise<FeedItem[]> {
     }
   }
 
+  const mediaMetaByKey = buildMediaMetaMap([
+    ...((logsResult.data ?? []) as Record<string, unknown>[]),
+    ...((stashResult.data ?? []) as Record<string, unknown>[]),
+    ...((listItemsResult.data ?? []) as Record<string, unknown>[]),
+  ]);
+
   const items: FeedItem[] = [];
 
   for (const row of logsResult.data ?? []) {
@@ -346,8 +458,20 @@ async function loadSocialFeed(): Promise<FeedItem[]> {
 
     const userId = typeof rec.user_id === "string" ? rec.user_id : "";
     const id = typeof rec.id === "string" ? rec.id : "";
+    const mediaId =
+      typeof rec.media_id === "string" ? rec.media_id : String(rec.media_id ?? "");
     const actor = actorFrom(profiles, userId);
-    const media = rowMedia(rec, mediaTypeRaw);
+    const meta = mediaMetaByKey.get(mediaMetaKey(mediaTypeRaw, mediaId));
+    const media = rowMedia(
+      {
+        ...rec,
+        title: rec.title ?? meta?.title,
+        creator: rec.creator ?? meta?.creator,
+        image_url: rec.image_url ?? meta?.image_url,
+        release_year: rec.release_year ?? meta?.release_year,
+      },
+      mediaTypeRaw
+    );
     const rating = asRating(rec.rating);
     if (!actor || !id || !media || rating == null) continue;
 
