@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { NavigationPendingProvider, useNavigationPending } from "@/context/NavigationPendingContext";
 import { StashProvider } from "@/context/StashContext";
 import Navbar from "@/components/Navbar";
+import MobileTabBar from "@/components/MobileTabBar";
 import { PendingRouteView } from "@/components/PendingRouteView";
 import { toAuthUserSummary, type AuthUserSummary } from "@/lib/auth";
 import { parsePreferredCategories } from "@/lib/media-order";
@@ -29,7 +30,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
   const { pendingHref } = useNavigationPending();
 
   return (
-    <main className="flex-1">
+    <main className="flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
       {pendingHref ? <PendingRouteView /> : children}
     </main>
   );
@@ -127,6 +128,7 @@ export default function AppShell({ children }: AppShellProps) {
         <div className="flex min-h-screen flex-col">
           {hideNav ? null : <Navbar user={user} />}
           <MainContent>{children}</MainContent>
+          {hideNav ? null : <MobileTabBar user={user} />}
         </div>
       </StashProvider>
     </NavigationPendingProvider>

@@ -181,7 +181,7 @@ export default function SearchModal() {
     showPanel && !loading && trimmedQuery.length > 0 && resultCount === 0;
 
   return (
-    <div ref={rootRef} className="relative w-[184px] shrink-0 sm:w-[200px]">
+    <div ref={rootRef} className="relative w-full max-w-[12.5rem] shrink-0 sm:max-w-[200px]">
       <form onSubmit={handleSubmit} className="w-full">
         <div className="relative">
           <SearchGlyph className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />

@@ -91,9 +91,9 @@ export default async function HomePage() {
   const signedIn = Boolean(profile);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-      <section className="space-y-4">
-        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:py-12">
+      <section className="space-y-3 md:space-y-4">
+        <h1 className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
           {username ? (
             <>Welcome back, {username}</>
           ) : (
@@ -118,7 +118,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="mt-10 grid items-start gap-10 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+      <div className="mt-8 grid grid-cols-1 items-start gap-8 md:mt-10 md:gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-lg font-semibold tracking-tight text-zinc-100 sm:text-xl">
@@ -130,7 +130,7 @@ export default async function HomePage() {
           </Suspense>
         </aside>
 
-        <div className="space-y-10">
+        <div className="space-y-8 md:space-y-10">
           <Suspense fallback={<SpotlightShelfSkeleton title="Popular This Week" />}>
             <PopularShelf />
           </Suspense>

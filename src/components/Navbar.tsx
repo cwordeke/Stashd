@@ -31,8 +31,8 @@ export default function Navbar({ user }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[rgba(10,10,11,0.85)] backdrop-blur-[12px]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex h-16 items-center">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        <div className="flex h-14 items-center md:h-16">
           <NavLink
             href="/"
             className="shrink-0 text-[17px] font-bold tracking-[-0.035em] text-white"
@@ -43,34 +43,32 @@ export default function Navbar({ user }: NavbarProps) {
           <HeaderNav
             links={links}
             displayPath={displayPath}
-            className="ml-10 hidden h-full md:flex"
+            className="ml-6 hidden h-full lg:ml-10 md:flex"
           />
 
-          <div className="ml-auto flex items-center gap-3">
-            <SearchModal />
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:block">
+              <SearchModal />
+            </div>
 
             {user ? (
-              <AccountMenu
-                user={user}
-                profileHref={profileHref}
-                onProfile={onProfile}
-              />
+              <div className="hidden md:block">
+                <AccountMenu
+                  user={user}
+                  profileHref={profileHref}
+                  onProfile={onProfile}
+                />
+              </div>
             ) : (
               <NavLink
                 href="/login"
-                className="inline-flex h-9 shrink-0 items-center rounded-md bg-emerald-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500"
+                className="hidden h-9 shrink-0 items-center rounded-md bg-emerald-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 md:inline-flex"
               >
                 Sign In
               </NavLink>
             )}
           </div>
         </div>
-
-        <HeaderNav
-          links={links}
-          displayPath={displayPath}
-          className="flex h-11 md:hidden"
-        />
       </div>
     </header>
   );

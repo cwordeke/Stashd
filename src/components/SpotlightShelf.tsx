@@ -71,13 +71,13 @@ export default function SpotlightShelf({
         <div className="relative">
           <div
             ref={scrollerRef}
-            className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:-mx-0 sm:px-0"
+            className="-mx-4 snap-x snap-mandatory scroll-smooth overflow-x-auto px-4 scrollbar-hide sm:-mx-0 sm:px-0"
           >
             <ul className="flex gap-3">
               {items.map((item) => (
                 <li
                   key={`${item.mediaType}-${item.id}`}
-                  className="w-[8.5rem] shrink-0 sm:w-36"
+                  className="w-[8.5rem] shrink-0 snap-start sm:w-36"
                 >
                   <MediaCard
                     item={item}
@@ -93,13 +93,13 @@ export default function SpotlightShelf({
             direction="left"
             disabled={!canLeft}
             onClick={() => scrollByPage(-1)}
-            className="absolute inset-y-0 left-0 z-10"
+            className="absolute inset-y-0 left-0 z-10 hidden sm:flex"
           />
           <CarouselArrow
             direction="right"
             disabled={!canRight}
             onClick={() => scrollByPage(1)}
-            className="absolute inset-y-0 right-0 z-10"
+            className="absolute inset-y-0 right-0 z-10 hidden sm:flex"
           />
         </div>
       )}
@@ -166,10 +166,10 @@ export function SpotlightShelfSkeleton({ title }: { title: string }) {
       <h2 className="text-lg font-semibold tracking-tight text-zinc-100 sm:text-xl">
         {title}
       </h2>
-      <div className="-mx-4 overflow-hidden px-4 sm:-mx-0 sm:px-0">
+      <div className="-mx-4 snap-x snap-mandatory overflow-x-auto px-4 scrollbar-hide sm:-mx-0 sm:px-0">
         <div className="flex gap-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="w-[8.5rem] shrink-0 sm:w-36">
+            <div key={i} className="w-[8.5rem] shrink-0 snap-start sm:w-36">
               <MediaCardSkeleton />
             </div>
           ))}
