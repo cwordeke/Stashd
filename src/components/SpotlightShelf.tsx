@@ -91,11 +91,11 @@ export default function SpotlightShelf({
             ref={scrollerRef}
             className="-mx-4 snap-x snap-mandatory scroll-smooth overflow-x-auto px-4 scrollbar-hide sm:-mx-0 sm:px-0"
           >
-            <ul className="flex gap-3">
+            <ul className="flex items-stretch gap-3">
               {items.map((item) => (
                 <li
                   key={`${item.mediaType}-${item.id}`}
-                  className="w-[8.5rem] shrink-0 snap-start sm:w-36"
+                  className="flex w-[8.5rem] shrink-0 snap-start sm:w-36"
                 >
                   <MediaCard
                     item={item}
@@ -187,7 +187,7 @@ export function SpotlightShelfSkeleton({ title }: { title: string }) {
       <div className="-mx-4 snap-x snap-mandatory overflow-x-auto px-4 scrollbar-hide sm:-mx-0 sm:px-0">
         <div className="flex gap-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="w-[8.5rem] shrink-0 snap-start sm:w-36">
+            <div key={i} className="flex w-[8.5rem] shrink-0 snap-start sm:w-36">
               <MediaCardSkeleton />
             </div>
           ))}

@@ -10,6 +10,30 @@ html {
   scroll-behavior: smooth;
   /* Keep page width stable when tab content changes scrollbar presence */
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+html::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+html::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 body {
@@ -42,6 +66,26 @@ main {
   }
   to {
     background-position: -100% 0;
+  }
+}
+
+@keyframes hero-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.hero-zoom-track {
+  animation: hero-zoom 28s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-zoom-track {
+    animation: none;
   }
 }
 
@@ -148,4 +192,28 @@ select:disabled,
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Lightweight custom scrollbars for in-page panels */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }

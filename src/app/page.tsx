@@ -1,15 +1,14 @@
 import { Suspense } from "react";
 import ActivityFeedPanel from "@/components/ActivityFeedPanel";
-import BrandIllustration from "@/components/BrandIllustration";
-import NavLink from "@/components/NavLink";
+import HomeHero, { HomeHeroSkeleton } from "@/components/HomeHero";
 import SpotlightShelf, {
   SpotlightShelfSkeleton,
 } from "@/components/SpotlightShelf";
 import { getSocialFeed } from "@/app/actions/feed";
-import { CATEGORY_META } from "@/lib/constants";
 import { getDiscoverSuggestions, getPopularThisWeek } from "@/lib/discover";
+import { getHeroSlides } from "@/lib/home-hero";
 import { getOwnProfile } from "@/lib/profile";
-import { MEDIA_TYPES, mediaKey, type UnifiedMediaItem } from "@/lib/types";
+import { mediaKey, type UnifiedMediaItem } from "@/lib/types";
 
 export const revalidate = 86400;
 
@@ -51,7 +50,7 @@ async function FriendsLogsShelf({ signedIn }: { signedIn: boolean }) {
     <SpotlightShelf
       title="Friends' Recent Logs"
       items={items}
-        emptyMessage="Follow people to see what they're watching, playing, and reading."
+      emptyMessage="Follow people to see what they're watching, playing, and reading."
     />
   );
 }
@@ -68,19 +67,31 @@ async function DiscoverShelf() {
   );
 }
 
+async function HomeHeroSection({
+  username,
+  signedIn,
+}: {
+  username?: string;
+  signedIn: boolean;
+}) {
+  const slides = await getHeroSlides();
+  return <HomeHero slides={slides} username={username} signedIn={signedIn} />;
+}
+
 function FeedSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10">
+    <div className="space-y-1.5">
       {Array.from({ length: 6 }, (_, i) => (
         <div
           key={i}
-          className="flex items-start gap-3 border-b border-white/[0.06] px-4 py-3.5 last:border-b-0"
+          className="flex items-start gap-3 rounded-xl bg-zinc-900/35 px-3.5 py-3"
         >
-          <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-zinc-800" />
+          <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-zinc-800" />
           <div className="min-w-0 flex-1 space-y-2 py-0.5">
+            <div className="h-4 w-16 animate-pulse rounded-full bg-zinc-800/70" />
             <div className="h-3.5 w-[85%] animate-pulse rounded bg-zinc-800" />
-            <div className="h-3 w-40 animate-pulse rounded bg-zinc-800/70" />
           </div>
+          <div className="h-[3.25rem] w-[2.2rem] shrink-0 animate-pulse rounded-md bg-zinc-800" />
         </div>
       ))}
     </div>
@@ -93,70 +104,39 @@ export default async function HomePage() {
   const signedIn = Boolean(profile);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:py-12">
-      <section className="space-y-3 md:space-y-4">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0 space-y-3 md:space-y-4">
-            <h1 className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
-              {username ? (
-                <>Welcome back, {username}</>
-              ) : (
-                <>Welcome to Stashd</>
-              )}
-            </h1>
-            <p className="max-w-xl text-sm text-zinc-400">
-              {signedIn
-                ? "See what friends are logging, plus picks based on what you like."
-                : "Track movies, TV, games, books, and music — then follow friends to fill your feed."}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {MEDIA_TYPES.map((type) => (
-                <NavLink
-                  key={type}
-                  href={CATEGORY_META[type].href}
-                  className="rounded-md border border-white/10 px-2.5 py-1 text-[13px] text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
-                >
-                  {CATEGORY_META[type].title}
-                </NavLink>
-              ))}
+    <>
+      <Suspense fallback={<HomeHeroSkeleton />}>
+        <HomeHeroSection username={username} signedIn={signedIn} />
+      </Suspense>
+
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-10 lg:py-12">
+        <div className="grid grid-cols-1 items-start gap-8 md:gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+          <aside className="scrollbar-custom lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-100 sm:text-xl">
+                Friend activity
+              </h2>
             </div>
-          </div>
-          {!signedIn ? (
-            <BrandIllustration
-              id="five-media"
-              size="lg"
-              className="mx-auto w-full max-w-[min(100%,380px)] shrink-0 md:mx-0"
-            />
-          ) : null}
-        </div>
-      </section>
+            <Suspense fallback={<FeedSkeleton />}>
+              <HomeFeed signedIn={signedIn} />
+            </Suspense>
+          </aside>
 
-      <div className="mt-8 grid grid-cols-1 items-start gap-8 md:mt-10 md:gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
-          <div className="mb-3 flex items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-tight text-zinc-100 sm:text-xl">
-              Friend activity
-            </h2>
+          <div className="space-y-8 md:space-y-10">
+            <Suspense fallback={<SpotlightShelfSkeleton title="Popular This Week" />}>
+              <PopularShelf />
+            </Suspense>
+            <Suspense fallback={<SpotlightShelfSkeleton title="Discover" />}>
+              <DiscoverShelf />
+            </Suspense>
+            <Suspense
+              fallback={<SpotlightShelfSkeleton title="Friends' Recent Logs" />}
+            >
+              <FriendsLogsShelf signedIn={signedIn} />
+            </Suspense>
           </div>
-          <Suspense fallback={<FeedSkeleton />}>
-            <HomeFeed signedIn={signedIn} />
-          </Suspense>
-        </aside>
-
-        <div className="space-y-8 md:space-y-10">
-          <Suspense fallback={<SpotlightShelfSkeleton title="Popular This Week" />}>
-            <PopularShelf />
-          </Suspense>
-          <Suspense fallback={<SpotlightShelfSkeleton title="Discover" />}>
-            <DiscoverShelf />
-          </Suspense>
-          <Suspense
-            fallback={<SpotlightShelfSkeleton title="Friends' Recent Logs" />}
-          >
-            <FriendsLogsShelf signedIn={signedIn} />
-          </Suspense>
         </div>
       </div>
-    </div>
+    </>
   );
 }

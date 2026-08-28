@@ -28,11 +28,11 @@ export default function MediaCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-md border border-white/10 bg-zinc-900/80 transition-colors hover:border-white/20 hover:bg-zinc-900"
+        "group relative flex h-full w-full flex-col overflow-hidden rounded-md border border-white/10 bg-zinc-900/80 transition-colors hover:border-white/20 hover:bg-zinc-900"
       )}
     >
-      <Link href={href} className="flex min-h-0 flex-1 flex-col outline-none">
-        <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-800">
+      <Link href={href} className="flex h-full min-h-0 flex-1 flex-col outline-none">
+        <div className="relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-zinc-800">
           {item.thumbnail ? (
             <Image
               src={item.thumbnail}
@@ -67,9 +67,19 @@ export default function MediaCard({
           ) : null}
         </div>
 
-        <div className={cn("flex flex-1 flex-col gap-1 p-3", compact && "p-2")}>
+        <div
+          className={cn(
+            "flex flex-1 flex-col gap-0.5 p-3",
+            compact && "min-h-[4.5rem] p-2"
+          )}
+        >
           <h3
-            className="line-clamp-2 text-sm font-medium leading-snug text-zinc-100"
+            className={cn(
+              "font-medium leading-snug text-zinc-100",
+              compact
+                ? "line-clamp-1 text-[13px]"
+                : "line-clamp-2 text-sm"
+            )}
             title={item.title}
           >
             {item.title}
