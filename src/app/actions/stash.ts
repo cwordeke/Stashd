@@ -149,11 +149,11 @@ export async function getLoggedMediaForType(
     supabase
       .from("user_ratings")
       .select(
-        "media_id, media_type, title, creator, image_url, release_year, updated_at"
+        "media_id, media_type, title, creator, image_url, release_year, created_at"
       )
       .eq("user_id", user.id)
       .eq("media_type", mediaType)
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(100),
   ]);
 

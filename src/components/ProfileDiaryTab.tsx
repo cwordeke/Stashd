@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import DisplayStars from "@/components/DisplayStars";
+import EmptyState from "@/components/EmptyState";
 import type { DiaryEntry } from "@/lib/profile-tabs";
 import {
   MEDIA_TYPE_LABELS,
@@ -22,14 +23,11 @@ interface DiaryGroup {
 export default function ProfileDiaryTab({ entries }: ProfileDiaryTabProps) {
   if (!entries.length) {
     return (
-      <div className="border border-white/[0.06] px-6 py-14 text-center">
-        <p className="text-sm font-medium text-zinc-200">
-          No diary entries logged yet.
-        </p>
-        <p className="mt-1.5 text-sm text-zinc-500">
-          When you log media, it will appear here by date.
-        </p>
-      </div>
+      <EmptyState
+        illustration="empty-stash"
+        title="No diary entries yet"
+        description="When you log media, it will appear here by date."
+      />
     );
   }
 

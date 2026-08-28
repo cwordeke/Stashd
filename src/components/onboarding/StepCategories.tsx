@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import BrandIllustration from "@/components/BrandIllustration";
 import { cn } from "@/lib/cn";
 import { MEDIA_TYPES, type MediaType } from "@/lib/types";
 
@@ -30,13 +31,17 @@ export default function StepCategories({
 }: StepCategoriesProps) {
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-white">
-          What are your favorites?
-        </h1>
-        <p className="text-sm leading-relaxed text-zinc-400">
-          This will help personalize your feed
-        </p>
+      <div className="flex flex-col items-center space-y-4 text-center sm:space-y-5">
+        <BrandIllustration id="five-media" size="md" className="mx-auto" />
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
+            What are your favorites?
+          </h1>
+          <p className="text-sm leading-relaxed text-zinc-400">
+            Pick the kinds of media you care about most — we&apos;ll personalize
+            your feed and nav.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

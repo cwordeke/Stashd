@@ -226,7 +226,7 @@ export async function getStashTabItems(
     supabase
       .from("user_ratings")
       .select(
-        "media_id, media_type, rating, title, creator, image_url, release_year, created_at, updated_at"
+        "media_id, media_type, rating, title, creator, image_url, release_year, created_at"
       )
       .eq("user_id", userId),
     supabase

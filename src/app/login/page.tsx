@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import BrandMark from "@/components/BrandMark";
+import BrandIllustration from "@/components/BrandIllustration";
 import { signInWithEmail, signUpWithEmail } from "@/app/actions/auth";
 import { cn } from "@/lib/cn";
 import { DEFAULT_AUTH_NEXT, safeRelativePath } from "@/lib/site-url";
@@ -66,25 +67,31 @@ function LoginForm() {
 
   return (
     <div className="border border-white/10 bg-zinc-900/50 p-8">
-      <div className="mb-8 space-y-2 text-center">
+      <div className="mb-4 text-center">
         <Link
           href="/"
           className="inline-flex justify-center text-[17px] font-bold tracking-[-0.035em] text-white"
         >
-          <BrandMark stacked size={96} priority />
+          <BrandMark stacked size={96} priority className="gap-2" />
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
           {isSignUp ? "Create your account" : "Sign in to continue"}
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-zinc-400">
           Save your Top 4 stash across movies, TV, games, books, and music.
         </p>
+        <BrandIllustration
+          id="five-media"
+          size="lg"
+          className="mx-auto -mb-3 mt-0 w-full max-w-[min(100%,380px)] max-h-[210px] object-contain object-center"
+          priority
+        />
       </div>
 
       <div
         role="tablist"
         aria-label="Authentication mode"
-        className="mb-6 grid grid-cols-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-1"
+        className="mb-5 grid grid-cols-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-1"
       >
         <ModeTab
           active={!isSignUp}

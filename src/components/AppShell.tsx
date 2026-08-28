@@ -75,6 +75,7 @@ export default function AppShell({ children }: AppShellProps) {
       void supabase.auth.updateUser({
         data: {
           username: profileUsername,
+          onboarding_completed: true,
           preferred_categories: preferred,
         },
       });

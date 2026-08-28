@@ -120,6 +120,8 @@ export async function completeOnboarding(
     },
   });
 
+  await supabase.auth.refreshSession();
+
   revalidatePath(`/u/${username}`);
 
   return { ok: true, username };

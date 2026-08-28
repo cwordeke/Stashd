@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import ActivityFeedPanel from "@/components/ActivityFeedPanel";
+import BrandIllustration from "@/components/BrandIllustration";
 import NavLink from "@/components/NavLink";
 import SpotlightShelf, {
   SpotlightShelfSkeleton,
@@ -61,6 +62,7 @@ async function DiscoverShelf() {
     <SpotlightShelf
       title="Discover"
       items={items}
+      emptyIllustration="popcorn"
       emptyMessage="Log, stash, or rate something and we'll suggest similar media here."
     />
   );
@@ -93,28 +95,39 @@ export default async function HomePage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:py-12">
       <section className="space-y-3 md:space-y-4">
-        <h1 className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
-          {username ? (
-            <>Welcome back, {username}</>
-          ) : (
-            <>Welcome to Stashd</>
-          )}
-        </h1>
-        <p className="max-w-xl text-sm text-zinc-400">
-          {signedIn
-            ? "See what friends are logging, plus picks based on what you like."
-            : "Track movies, TV, games, books, and music — then follow friends to fill your feed."}
-        </p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          {MEDIA_TYPES.map((type) => (
-            <NavLink
-              key={type}
-              href={CATEGORY_META[type].href}
-              className="rounded-md border border-white/10 px-2.5 py-1 text-[13px] text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
-            >
-              {CATEGORY_META[type].title}
-            </NavLink>
-          ))}
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 space-y-3 md:space-y-4">
+            <h1 className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
+              {username ? (
+                <>Welcome back, {username}</>
+              ) : (
+                <>Welcome to Stashd</>
+              )}
+            </h1>
+            <p className="max-w-xl text-sm text-zinc-400">
+              {signedIn
+                ? "See what friends are logging, plus picks based on what you like."
+                : "Track movies, TV, games, books, and music — then follow friends to fill your feed."}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {MEDIA_TYPES.map((type) => (
+                <NavLink
+                  key={type}
+                  href={CATEGORY_META[type].href}
+                  className="rounded-md border border-white/10 px-2.5 py-1 text-[13px] text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
+                >
+                  {CATEGORY_META[type].title}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+          {!signedIn ? (
+            <BrandIllustration
+              id="five-media"
+              size="lg"
+              className="mx-auto w-full max-w-[min(100%,380px)] shrink-0 md:mx-0"
+            />
+          ) : null}
         </div>
       </section>
 

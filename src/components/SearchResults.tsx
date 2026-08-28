@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MediaCard from "@/components/MediaCard";
 import { MediaGridSkeleton } from "@/components/LoadingSkeleton";
+import EmptyState from "@/components/EmptyState";
+import BrandIllustration from "@/components/BrandIllustration";
 import {
   columnsStillLoading,
   emptySearchColumns,
@@ -226,9 +228,16 @@ export default function SearchResults() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6 space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
-          Search
-        </h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight text-white">
+            Search
+          </h1>
+          <BrandIllustration
+            id="popcorn"
+            size="sm"
+            className="mx-auto sm:mx-0 sm:shrink-0"
+          />
+        </div>
 
         <form onSubmit={handleSubmit} className="flex max-w-xl gap-2">
           <input
@@ -266,11 +275,17 @@ export default function SearchResults() {
       </div>
 
       {!q && (
-        <p className="py-12 text-center text-sm text-zinc-500">
-          {filterType
-            ? `Type a query to search ${MEDIA_TYPE_LABELS[filterType].toLowerCase()}.`
-            : "Type a query to search all media."}
-        </p>
+        <EmptyState
+          illustration="popcorn"
+          title="What are you looking for?"
+          description={
+            filterType
+              ? `Search ${MEDIA_TYPE_LABELS[filterType].toLowerCase()} by title, creator, or keyword.`
+              : "Search movies, TV, games, books, and music by title or creator."
+          }
+          bordered={false}
+          className="py-6 sm:py-10"
+        />
       )}
 
       {q &&
@@ -280,12 +295,20 @@ export default function SearchResults() {
       ) : null}
 
       {showEmpty && (
-        <p className="py-8 text-center text-sm text-zinc-500">
-          {anyError ??
-            (filterType
-              ? `No ${MEDIA_TYPE_LABELS[filterType].toLowerCase()} results`
-              : "No results")}
-        </p>
+        <EmptyState
+          illustration="popcorn"
+          title={
+            filterType
+              ? `No ${MEDIA_TYPE_LABELS[filterType].toLowerCase()} found`
+              : "No results found"
+          }
+          description={
+            anyError ??
+            "Try a different spelling, or search across all media types."
+          }
+          bordered={false}
+          className="py-4 sm:py-8"
+        />
       )}
 
       {visibleResults.length > 0 && (

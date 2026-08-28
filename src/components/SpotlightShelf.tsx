@@ -3,19 +3,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import MediaCard from "@/components/MediaCard";
 import { MediaCardSkeleton } from "@/components/LoadingSkeleton";
+import BrandIllustration from "@/components/BrandIllustration";
 import { cn } from "@/lib/cn";
+import type { IllustrationId } from "@/lib/illustrations";
 import type { UnifiedMediaItem } from "@/lib/types";
 
 interface SpotlightShelfProps {
   title: string;
   items: Array<UnifiedMediaItem & { rating?: number | null }>;
   emptyMessage?: string;
+  emptyIllustration?: IllustrationId;
 }
 
 export default function SpotlightShelf({
   title,
   items,
   emptyMessage = "Nothing to show yet.",
+  emptyIllustration,
 }: SpotlightShelfProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -64,9 +68,23 @@ export default function SpotlightShelf({
       </h2>
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-8 text-center text-sm text-zinc-500">
-          {emptyMessage}
-        </p>
+        <div className="rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-6 text-center sm:py-8">
+          {emptyIllustration ? (
+            <BrandIllustration
+              id={emptyIllustration}
+              size="sm"
+              className="mx-auto"
+            />
+          ) : null}
+          <p
+            className={cn(
+              "text-sm text-zinc-500",
+              emptyIllustration && "mt-3"
+            )}
+          >
+            {emptyMessage}
+          </p>
+        </div>
       ) : (
         <div className="relative">
           <div

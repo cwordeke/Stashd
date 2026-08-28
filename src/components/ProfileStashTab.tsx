@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import MediaCard from "@/components/MediaCard";
+import EmptyState from "@/components/EmptyState";
 import { cn } from "@/lib/cn";
 import type { StashTabItem } from "@/lib/profile-tabs";
 import type { MediaType } from "@/lib/types";
@@ -49,9 +50,10 @@ export default function ProfileStashTab({ items }: ProfileStashTabProps) {
 
   if (!items.length) {
     return (
-      <EmptyPanel
-        title="Nothing in Stash yet"
-        body="Rated, liked, or logged media will show up here."
+      <EmptyState
+        illustration="empty-stash"
+        title="Nothing in stash"
+        description="Rated, liked, or logged media will show up here."
       />
     );
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { syncAuthMetadataFromProfile } from "@/lib/sync-auth-metadata";
 import {
   DEFAULT_AUTH_NEXT,
   getRequestOrigin,
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      await syncAuthMetadataFromProfile(supabase);
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

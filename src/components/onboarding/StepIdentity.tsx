@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import BrandIllustration from "@/components/BrandIllustration";
 import { checkUsernameAvailable } from "@/app/actions/onboarding";
 import { cn } from "@/lib/cn";
 import {
@@ -58,13 +59,16 @@ export default function StepIdentity({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-white">
-          Enter your username
-        </h1>
-        <p className="text-sm leading-relaxed text-zinc-400">
-          This is your public handle. Friends will find your stash here.
-        </p>
+      <div className="flex flex-col items-center space-y-4 text-center sm:space-y-5">
+        <BrandIllustration id="five-media" size="md" className="mx-auto" priority />
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
+            Enter your username
+          </h1>
+          <p className="text-sm leading-relaxed text-zinc-400">
+            This is your public handle. Friends will find your stash here.
+          </p>
+        </div>
       </div>
 
       <label className="block space-y-2">

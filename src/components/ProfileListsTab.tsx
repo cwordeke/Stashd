@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import ListPosterCollage from "@/components/ListPosterCollage";
+import EmptyState from "@/components/EmptyState";
 import type { ListSummary } from "@/lib/profile-tabs";
 import { cn } from "@/lib/cn";
 
@@ -43,21 +44,20 @@ export default function ProfileListsTab({
 
   if (!lists.length) {
     return (
-      <div className="border border-dashed border-white/10 px-6 py-16 text-center">
-        <p className="text-sm font-medium text-zinc-200">No custom lists yet</p>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
-          Create themed lists for festivals, genres, rankings, or anything you
-          want to track across movies, TV, games, books, and music.
-        </p>
+      <EmptyState
+        illustration="empty-stash"
+        title="No lists yet"
+        description="Create themed lists for festivals, genres, rankings, or anything you want to track across movies, TV, games, books, and music."
+      >
         {isOwner ? (
           <Link
             href={`/u/${username}/lists/new`}
-            className="mt-6 inline-flex rounded-md bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500"
+            className="inline-flex rounded-md bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500"
           >
-            Create a Custom List
+            Create a custom list
           </Link>
         ) : null}
-      </div>
+      </EmptyState>
     );
   }
 

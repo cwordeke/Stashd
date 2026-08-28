@@ -160,34 +160,32 @@ async function fetchFeedRatings(
   supabase: Awaited<ReturnType<typeof createClient>>,
   followingIds: string[]
 ): Promise<{ data: FeedRatingRow[]; error: { message: string } | null }> {
-  const full = await supabase
+  const withMeta = await supabase
     .from("user_ratings")
     .select(
-      "id, user_id, media_id, media_type, title, creator, image_url, release_year, rating, updated_at, created_at"
+      "id, user_id, media_id, media_type, title, creator, image_url, release_year, rating, created_at"
     )
     .in("user_id", followingIds)
-    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(SOURCE_LIMIT);
 
-  if (!full.error) {
-    return { data: (full.data ?? []) as FeedRatingRow[], error: null };
+  if (!withMeta.error) {
+    return { data: (withMeta.data ?? []) as FeedRatingRow[], error: null };
   }
 
-  const fallback = await supabase
+  const minimal = await supabase
     .from("user_ratings")
-    .select(
-      "id, user_id, media_id, media_type, rating, updated_at, created_at"
-    )
+    .select("id, user_id, media_id, media_type, rating, created_at")
     .in("user_id", followingIds)
-    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(SOURCE_LIMIT);
 
-  if (fallback.error) {
-    return { data: [], error: fallback.error };
+  if (minimal.error) {
+    return { data: [], error: minimal.error };
   }
 
   return {
-    data: ((fallback.data ?? []) as FeedRatingRow[]).map((row) => ({
+    data: ((minimal.data ?? []) as FeedRatingRow[]).map((row) => ({
       ...row,
       title: null,
       creator: null,

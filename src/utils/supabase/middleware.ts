@@ -1,23 +1,51 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  claimsFromJwt,
+  isOnboardingDone,
+  PROFILE_LOOKUP_TIMEOUT_MS,
+} from "@/lib/jwt-auth";
 import { getSupabaseEnv } from "@/utils/supabase/env";
 
-function metaUsername(user: {
-  user_metadata?: Record<string, unknown>;
-}): string | null {
-  const meta = user.user_metadata ?? {};
-  return typeof meta.username === "string" && meta.username
-    ? meta.username
-    : null;
+function redirectWithSession(url: URL, sessionResponse: NextResponse): NextResponse {
+  const response = NextResponse.redirect(url);
+  sessionResponse.cookies.getAll().forEach(({ name, value }) => {
+    response.cookies.set(name, value);
+  });
+  return response;
 }
 
-function metaOnboardingCompleted(user: {
-  user_metadata?: Record<string, unknown>;
-}): boolean | null {
-  const value = user.user_metadata?.onboarding_completed;
-  if (value === true) return true;
-  if (value === false) return false;
-  return null;
+async function fetchProfileFallback(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string
+): Promise<{ username: string | null; onboardingCompleted: boolean | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("username, onboarding_completed")
+      .eq("id", userId)
+      .abortSignal(AbortSignal.timeout(PROFILE_LOOKUP_TIMEOUT_MS))
+      .maybeSingle();
+
+    if (error) {
+      console.error("[middleware] profile fallback failed", { code: error.code });
+      return { username: null, onboardingCompleted: null };
+    }
+
+    const username =
+      typeof data?.username === "string" && data.username ? data.username : null;
+    const onboardingCompleted =
+      data &&
+      "onboarding_completed" in data &&
+      typeof data.onboarding_completed === "boolean"
+        ? data.onboarding_completed
+        : null;
+
+    return { username, onboardingCompleted };
+  } catch {
+    console.error("[middleware] profile fallback timed out");
+    return { username: null, onboardingCompleted: null };
+  }
 }
 
 export async function updateSession(request: NextRequest) {
@@ -45,32 +73,31 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Do not run code between createServerClient and getClaims().
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+
+  if (claimsError) {
+    console.error("[middleware] getClaims failed", { message: claimsError.message });
+  }
 
   const pathname = request.nextUrl.pathname;
   const isAuthRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/onboarding");
-  const isGateRoute =
-    pathname === "/login" ||
-    pathname === "/onboarding" ||
-    pathname === "/profile" ||
-    pathname.startsWith("/profile/") ||
-    pathname === "/settings" ||
-    pathname.startsWith("/settings/");
 
-  if (!user && pathname.startsWith("/onboarding")) {
+  const { userId, username: jwtUsername, onboardingCompleted: jwtOnboarding } =
+    claimsFromJwt(claimsData?.claims);
+
+  if (!userId && pathname.startsWith("/onboarding")) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", "/onboarding");
-    return NextResponse.redirect(loginUrl);
+    return redirectWithSession(loginUrl, supabaseResponse);
   }
 
   if (
-    !user &&
+    !userId &&
     (pathname === "/profile" ||
       pathname.startsWith("/profile/") ||
       pathname === "/settings" ||
@@ -79,84 +106,62 @@ export async function updateSession(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    return redirectWithSession(loginUrl, supabaseResponse);
   }
 
-  if (!user) {
+  if (!userId) {
     return supabaseResponse;
   }
 
-  // Prefer JWT metadata so media-page navigations skip a profiles round-trip.
-  let username = metaUsername(user);
-  let onboardingCompleted = metaOnboardingCompleted(user);
+  let username = jwtUsername;
+  let onboardingCompleted = jwtOnboarding;
 
-  if (!username || isGateRoute || onboardingCompleted === false) {
-    const withFlag = await supabase
-      .from("profiles")
-      .select("username, onboarding_completed")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const profile = withFlag.error
-      ? (
-          await supabase
-            .from("profiles")
-            .select("username")
-            .eq("id", user.id)
-            .maybeSingle()
-        ).data
-      : withFlag.data;
-
-    if (typeof profile?.username === "string") {
+  // Rare legacy fallback: JWT missing username but profile row may exist.
+  if (!username) {
+    const profile = await fetchProfileFallback(supabase, userId);
+    if (profile.username) {
       username = profile.username;
     }
-    if (
-      profile &&
-      "onboarding_completed" in profile &&
-      typeof profile.onboarding_completed === "boolean"
-    ) {
-      onboardingCompleted = profile.onboarding_completed;
+    if (profile.onboardingCompleted !== null) {
+      onboardingCompleted = profile.onboardingCompleted;
     }
   }
 
-  // Legacy accounts: username exists, flag never set on the JWT → already done.
-  const onboardingDone =
-    onboardingCompleted === true ||
-    (onboardingCompleted !== false && Boolean(username));
+  const onboardingDone = isOnboardingDone(username, onboardingCompleted);
 
   if (!username && !isAuthRoute) {
     const onboardingUrl = request.nextUrl.clone();
     onboardingUrl.pathname = "/onboarding";
     onboardingUrl.search = "";
-    return NextResponse.redirect(onboardingUrl);
+    return redirectWithSession(onboardingUrl, supabaseResponse);
   }
 
   if (username && !onboardingDone && !isAuthRoute) {
     const onboardingUrl = request.nextUrl.clone();
     onboardingUrl.pathname = "/onboarding";
     onboardingUrl.search = "";
-    return NextResponse.redirect(onboardingUrl);
+    return redirectWithSession(onboardingUrl, supabaseResponse);
   }
 
   if (username && onboardingDone && pathname === "/onboarding") {
     const publicUrl = request.nextUrl.clone();
     publicUrl.pathname = `/u/${username}`;
     publicUrl.search = "";
-    return NextResponse.redirect(publicUrl);
+    return redirectWithSession(publicUrl, supabaseResponse);
   }
 
   if (username && (pathname === "/login" || pathname === "/profile")) {
     const dest = request.nextUrl.clone();
     dest.pathname = onboardingDone ? `/u/${username}` : "/onboarding";
     dest.search = "";
-    return NextResponse.redirect(dest);
+    return redirectWithSession(dest, supabaseResponse);
   }
 
   if (!username && pathname === "/login") {
     const onboardingUrl = request.nextUrl.clone();
     onboardingUrl.pathname = "/onboarding";
     onboardingUrl.search = "";
-    return NextResponse.redirect(onboardingUrl);
+    return redirectWithSession(onboardingUrl, supabaseResponse);
   }
 
   return supabaseResponse;

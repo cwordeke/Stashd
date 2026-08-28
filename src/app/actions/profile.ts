@@ -72,6 +72,7 @@ export async function claimUsername(
   await supabase.auth.updateUser({
     data: { username: normalized },
   });
+  await supabase.auth.refreshSession();
 
   const profile = rowToProfile(data as ProfileRow);
   revalidatePath("/onboarding");

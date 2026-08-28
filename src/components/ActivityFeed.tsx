@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import DisplayStars from "@/components/DisplayStars";
+import EmptyState from "@/components/EmptyState";
 import NavLink from "@/components/NavLink";
 import type { FeedItem } from "@/app/actions/feed";
 import { formatRelativeTime } from "@/lib/relative-time";
@@ -19,21 +20,18 @@ export default function ActivityFeed({
 }: ActivityFeedProps) {
   if (!items.length) {
     return (
-      <div
-        className={cn(
-          "rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-8 text-center",
-          className
-        )}
-      >
-        <p className="text-sm font-medium text-zinc-200">
-          {signedIn ? "Your feed is quiet" : "Sign in to see friend activity"}
-        </p>
-        <p className="mt-1.5 text-sm text-zinc-500">
-          {signedIn
+      <EmptyState
+        illustration="no-notifications"
+        title={
+          signedIn ? "No notifications right now" : "Sign in to see friend activity"
+        }
+        description={
+          signedIn
             ? "Follow people from search to see what they're logging."
-            : "Follow friends to fill this timeline with watches, plays, and reads."}
-        </p>
-      </div>
+            : "Follow friends to fill this timeline with watches, plays, and reads."
+        }
+        className={cn("rounded-xl bg-zinc-900/40", className)}
+      />
     );
   }
 
