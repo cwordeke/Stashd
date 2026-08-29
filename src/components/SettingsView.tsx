@@ -20,6 +20,8 @@ import { useNavigationPending } from "@/context/NavigationPendingContext";
 import { profilePath } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { notifyProfileUpdated } from "@/lib/profile-events";
+import { notifyTutorialReplay } from "@/lib/tutorial-events";
+import { resetTutorial } from "@/app/actions/tutorial";
 import type { MediaType } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -213,6 +215,13 @@ export default function SettingsView({
     setDraft(result.profile.bio ?? "");
     setMessage("Bio saved");
     router.refresh();
+  }
+
+  async function handleReplayTutorial() {
+    await resetTutorial();
+    notifyTutorialReplay();
+    beginNavigation("/");
+    router.push("/");
   }
 
   async function handleSignOut() {
@@ -482,6 +491,23 @@ export default function SettingsView({
                   <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
                     Session
                   </h2>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-4 py-4 sm:px-5">
+                  <div>
+                    <p className="text-[13px] text-zinc-200">
+                      Replay tutorial
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      Walk through the app tour again.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleReplayTutorial}
+                    className="shrink-0 rounded-md border border-white/10 px-3.5 py-1.5 text-[13px] font-medium text-zinc-200 transition-colors hover:bg-white/[0.05]"
+                  >
+                    Replay
+                  </button>
                 </div>
                 <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
                   <div>

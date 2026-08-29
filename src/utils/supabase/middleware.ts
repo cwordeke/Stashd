@@ -85,6 +85,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/onboarding");
+  const isSpotifyOAuthRoute =
+    pathname.startsWith("/api/spotify/login") ||
+    pathname.startsWith("/api/spotify/callback");
 
   const { userId, username: jwtUsername, onboardingCompleted: jwtOnboarding } =
     claimsFromJwt(claimsData?.claims);
@@ -129,14 +132,14 @@ export async function updateSession(request: NextRequest) {
 
   const onboardingDone = isOnboardingDone(username, onboardingCompleted);
 
-  if (!username && !isAuthRoute) {
+  if (!username && !isAuthRoute && !isSpotifyOAuthRoute) {
     const onboardingUrl = request.nextUrl.clone();
     onboardingUrl.pathname = "/onboarding";
     onboardingUrl.search = "";
     return redirectWithSession(onboardingUrl, supabaseResponse);
   }
 
-  if (username && !onboardingDone && !isAuthRoute) {
+  if (username && !onboardingDone && !isAuthRoute && !isSpotifyOAuthRoute) {
     const onboardingUrl = request.nextUrl.clone();
     onboardingUrl.pathname = "/onboarding";
     onboardingUrl.search = "";

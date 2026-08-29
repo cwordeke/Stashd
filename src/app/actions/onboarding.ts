@@ -83,6 +83,7 @@ export async function completeOnboarding(
     username,
     avatar_url: avatarUrl,
     onboarding_completed: true,
+    tutorial_completed: false,
   };
 
   const { error } = await supabase.from("profiles").upsert(payload, {
@@ -116,6 +117,7 @@ export async function completeOnboarding(
     data: {
       username,
       onboarding_completed: true,
+      tutorial_completed: false,
       preferred_categories: preferredCategories,
     },
   });

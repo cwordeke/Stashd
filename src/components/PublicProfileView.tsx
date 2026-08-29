@@ -310,14 +310,15 @@ export default function PublicProfileView({
             ) : null}
 
             {!showTabLoading && tab === "top4" ? (
-              <section className="w-full space-y-8">
+              <section className="w-full space-y-8" data-tutorial="profile-top4">
                 <div className="grid w-full grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
-                  {leadingTypes.map((type) => (
+                  {leadingTypes.map((type, index) => (
                     <Top4Shelf
                       key={type}
                       type={type}
                       items={displayShelves[type] ?? emptyShelves()[type]}
                       editable={isOwner}
+                      tutorialAnchors={isOwner && index === 0}
                     />
                   ))}
                 </div>
@@ -341,12 +342,12 @@ export default function PublicProfileView({
 
             {!showTabLoading && tab === "stash" ? (
               <div className="w-full">
-                <ProfileStashTab items={stashItems} />
+                <ProfileStashTab items={stashItems} showTutorialAnchor />
               </div>
             ) : null}
             {!showTabLoading && tab === "diary" ? (
               <div className="w-full">
-                <ProfileDiaryTab entries={diaryEntries} />
+                <ProfileDiaryTab entries={diaryEntries} showTutorialAnchor />
               </div>
             ) : null}
             {!showTabLoading && tab === "watchlist" ? (

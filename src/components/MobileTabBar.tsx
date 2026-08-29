@@ -29,7 +29,7 @@ export default function MobileTabBar({ user }: MobileTabBarProps) {
     },
     {
       href: profileHref,
-      label: "Profile",
+      label: user ? "Profile" : "Sign in",
       active:
         displayPath === profileHref ||
         displayPath.startsWith(`${profileHref}/`) ||
@@ -43,15 +43,20 @@ export default function MobileTabBar({ user }: MobileTabBarProps) {
   return (
     <nav
       aria-label="Mobile"
+      data-tutorial="mobile-nav"
       className="fixed inset-x-0 bottom-0 z-50 flex border-t border-white/[0.06] bg-[rgba(10,10,11,0.92)] pb-[env(safe-area-inset-bottom)] backdrop-blur-[12px] md:hidden"
     >
       {tabs.map((tab) => (
         <NavLink
           key={tab.label}
           href={tab.href}
+          {...(tab.href === profileHref
+            ? { "data-tutorial": "profile-link" }
+            : {})}
           className={cn(
             "flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-            tab.active ? "text-emerald-400" : "text-zinc-500"
+            tab.active ? "text-emerald-400" : "text-zinc-500",
+            !user && tab.label === "Sign in" && !tab.active && "text-emerald-500/80"
           )}
         >
           <tab.icon className="h-5 w-5" />

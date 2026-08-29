@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import MediaCard from "@/components/MediaCard";
 import { MediaCardSkeleton } from "@/components/LoadingSkeleton";
 import BrandIllustration from "@/components/BrandIllustration";
@@ -13,6 +13,7 @@ interface SpotlightShelfProps {
   items: Array<UnifiedMediaItem & { rating?: number | null }>;
   emptyMessage?: string;
   emptyIllustration?: IllustrationId;
+  emptyChildren?: ReactNode;
 }
 
 export default function SpotlightShelf({
@@ -20,6 +21,7 @@ export default function SpotlightShelf({
   items,
   emptyMessage = "Nothing to show yet.",
   emptyIllustration,
+  emptyChildren,
 }: SpotlightShelfProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -84,6 +86,7 @@ export default function SpotlightShelf({
           >
             {emptyMessage}
           </p>
+          {emptyChildren ? <div className="mt-4">{emptyChildren}</div> : null}
         </div>
       ) : (
         <div className="relative">

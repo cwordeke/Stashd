@@ -22,6 +22,20 @@ export function metaOnboardingCompleted(
   return null;
 }
 
+export function metaTutorialCompleted(
+  source: MetadataCarrier
+): boolean | null {
+  const value = source.user_metadata?.tutorial_completed;
+  if (value === true) return true;
+  if (value === false) return false;
+  return null;
+}
+
+export function metaTutorialStep(source: MetadataCarrier): number | null {
+  const value = source.user_metadata?.tutorial_step;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 /** Legacy accounts may only have a username; treat that as onboarding complete. */
 export function isOnboardingDone(
   username: string | null,

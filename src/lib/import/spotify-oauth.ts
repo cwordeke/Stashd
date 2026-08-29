@@ -29,10 +29,28 @@ function hmac(payload: string): string {
   return createHmac("sha256", stateSecret()).update(payload).digest("base64url");
 }
 
-export function signSpotifyOAuthState(userId: string): string {
+const ALLOWED_RETURN_PATHS = new Set(["/onboarding", "/settings"]);
+
+/** Restrict post-OAuth redirects to known in-app paths. */
+export function sanitizeSpotifyReturnPath(
+  next: string | null | undefined
+): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "/settings";
+  }
+  const path = next.split("?")[0];
+  if (!ALLOWED_RETURN_PATHS.has(path)) return "/settings";
+  return path;
+}
+
+export function signSpotifyOAuthState(
+  userId: string,
+  next?: string | null
+): string {
   const payload = Buffer.from(
     JSON.stringify({
       uid: userId,
+      next: sanitizeSpotifyReturnPath(next),
       n: crypto.randomUUID(),
       exp: Date.now() + STATE_TTL_MS,
     })
@@ -40,12 +58,12 @@ export function signSpotifyOAuthState(userId: string): string {
   return `${payload}.${hmac(payload)}`;
 }
 
-export function verifySpotifyOAuthState(
+export function parseSpotifyOAuthState(
   state: string,
   userId: string
-): boolean {
+): { valid: boolean; next: string } {
   const dot = state.lastIndexOf(".");
-  if (dot <= 0) return false;
+  if (dot <= 0) return { valid: false, next: "/settings" };
 
   const payload = state.slice(0, dot);
   const signature = state.slice(dot + 1);
@@ -53,18 +71,32 @@ export function verifySpotifyOAuthState(
 
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    return { valid: false, next: "/settings" };
+  }
 
   try {
     const data = JSON.parse(
       Buffer.from(payload, "base64url").toString("utf8")
-    ) as { uid?: string; exp?: number };
-    if (data.uid !== userId) return false;
-    if (typeof data.exp !== "number" || data.exp < Date.now()) return false;
-    return true;
+    ) as { uid?: string; next?: string; exp?: number };
+    if (data.uid !== userId) return { valid: false, next: "/settings" };
+    if (typeof data.exp !== "number" || data.exp < Date.now()) {
+      return { valid: false, next: "/settings" };
+    }
+    return {
+      valid: true,
+      next: sanitizeSpotifyReturnPath(data.next),
+    };
   } catch {
-    return false;
+    return { valid: false, next: "/settings" };
   }
+}
+
+export function verifySpotifyOAuthState(
+  state: string,
+  userId: string
+): boolean {
+  return parseSpotifyOAuthState(state, userId).valid;
 }
 
 export async function exchangeSpotifyCode(

@@ -21,9 +21,13 @@ const FILTERS: { id: FilterType; label: string }[] = [
 
 interface ProfileStashTabProps {
   items: StashTabItem[];
+  showTutorialAnchor?: boolean;
 }
 
-export default function ProfileStashTab({ items }: ProfileStashTabProps) {
+export default function ProfileStashTab({
+  items,
+  showTutorialAnchor = false,
+}: ProfileStashTabProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [sort, setSort] = useState<SortMode>("recent");
 
@@ -50,16 +54,21 @@ export default function ProfileStashTab({ items }: ProfileStashTabProps) {
 
   if (!items.length) {
     return (
-      <EmptyState
-        illustration="empty-stash"
-        title="Nothing in stash"
-        description="Rated, liked, or logged media will show up here."
-      />
+      <div {...(showTutorialAnchor ? { "data-tutorial": "profile-stash" } : {})}>
+        <EmptyState
+          illustration="empty-stash"
+          title="Nothing in stash"
+          description="Rated, liked, or logged media will show up here."
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      {...(showTutorialAnchor ? { "data-tutorial": "profile-stash" } : {})}
+    >
       <div className="flex flex-col gap-4 border-b border-zinc-800/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {FILTERS.map((chip) => (

@@ -27,6 +27,7 @@ interface Top4ShelfProps {
   type: MediaType;
   items: StashSlot[];
   editable?: boolean;
+  tutorialAnchors?: boolean;
 }
 
 type FilledSlot = NonNullable<StashSlot> & { stashId: string };
@@ -68,6 +69,7 @@ export default function Top4Shelf({
   type,
   items,
   editable = false,
+  tutorialAnchors = false,
 }: Top4ShelfProps) {
   const { removeFromStash, reorderStash } = useStash();
   const reduceMotion = useReducedMotion();
@@ -252,7 +254,10 @@ export default function Top4Shelf({
   }
 
   return (
-    <section className="space-y-2.5">
+    <section
+      className="space-y-2.5"
+      {...(tutorialAnchors ? { "data-tutorial": "profile-top4" } : {})}
+    >
       <h3 className="text-sm font-medium text-zinc-400">{label}</h3>
 
       <div
@@ -261,6 +266,7 @@ export default function Top4Shelf({
           "stash-poster-scene grid grid-cols-4 gap-2 sm:gap-2.5",
           drag && "touch-none"
         )}
+        {...(tutorialAnchors ? { "data-tutorial": "profile-top4-grid" } : {})}
       >
         {display.map((item) => {
           const href = mediaDetailPath(item.mediaType, item.id);
@@ -324,18 +330,32 @@ export default function Top4Shelf({
 
         {Array.from({ length: emptyCount }, (_, index) => {
           if (editable) {
-            return (
+            const addButton = (
               <StashPosterTilt
                 key={`empty-${type}-${index}`}
                 as="button"
                 onClick={() => setPickerOpen(true)}
                 title={`Add to ${label}`}
                 tiltEnabled={!drag}
-                className="flex items-center justify-center bg-zinc-900/80 hover:bg-zinc-800/90"
+                className="flex h-full w-full items-center justify-center bg-zinc-900/80 hover:bg-zinc-800/90"
               >
                 <PlusIcon />
               </StashPosterTilt>
             );
+
+            if (tutorialAnchors && index === 0) {
+              return (
+                <div
+                  key={`empty-${type}-${index}`}
+                  data-tutorial="profile-top4-add"
+                  className="aspect-[2/3]"
+                >
+                  {addButton}
+                </div>
+              );
+            }
+
+            return addButton;
           }
 
           return (

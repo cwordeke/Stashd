@@ -46,7 +46,10 @@ export default function Navbar({ user }: NavbarProps) {
             className="ml-6 hidden h-full lg:ml-10 md:flex"
           />
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <div
+            className="ml-auto flex items-center gap-2 sm:gap-3"
+            data-tutorial="nav-actions"
+          >
             <div className="hidden md:block">
               <SearchModal />
             </div>
@@ -62,9 +65,9 @@ export default function Navbar({ user }: NavbarProps) {
             ) : (
               <NavLink
                 href="/login"
-                className="hidden h-9 shrink-0 items-center rounded-md bg-emerald-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-emerald-500 md:inline-flex"
+                className="inline-flex h-9 shrink-0 items-center rounded-md bg-emerald-600 px-3 text-[12px] font-semibold text-white shadow-sm shadow-emerald-950/30 transition-colors hover:bg-emerald-500 sm:text-[13px]"
               >
-                Sign In
+                Sign in
               </NavLink>
             )}
           </div>
@@ -227,6 +230,7 @@ function AccountMenu({
       <NavLink
         href={profileHref}
         title={label}
+        data-tutorial="profile-link"
         className={cn(
           "flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-200 transition-colors",
           "hover:bg-white/[0.05]",

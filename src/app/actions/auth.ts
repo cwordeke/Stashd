@@ -58,7 +58,7 @@ export async function signUpWithEmail(
     password,
     options: {
       emailRedirectTo: `${await currentOrigin()}/auth/callback`,
-      data: { onboarding_completed: false },
+      data: { onboarding_completed: false, tutorial_completed: false },
     },
   });
 
@@ -83,7 +83,7 @@ export async function signUpWithEmail(
   }
 
   await supabase.auth.updateUser({
-    data: { onboarding_completed: false },
+    data: { onboarding_completed: false, tutorial_completed: false },
   });
 
   revalidatePath("/", "layout");

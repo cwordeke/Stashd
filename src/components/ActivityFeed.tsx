@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import DisplayStars from "@/components/DisplayStars";
+import AuthPromptButtons from "@/components/AuthPromptButtons";
 import EmptyState from "@/components/EmptyState";
 import NavLink from "@/components/NavLink";
 import type { FeedItem } from "@/app/actions/feed";
@@ -29,10 +30,12 @@ export default function ActivityFeed({
         description={
           signedIn
             ? "Follow people from search to see what they're logging."
-            : "Follow friends to fill this timeline with watches, plays, and reads."
+            : "Create a free account to follow friends and see their watches, plays, and reads."
         }
         className={cn("rounded-xl bg-zinc-900/30 py-8", className)}
-      />
+      >
+        {!signedIn ? <AuthPromptButtons size="sm" /> : null}
+      </EmptyState>
     );
   }
 

@@ -69,6 +69,28 @@ main {
   }
 }
 
+@keyframes skeleton-fade {
+  0%,
+  100% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 0.48;
+  }
+}
+
+.skeleton {
+  background-color: #27272a;
+  animation: skeleton-fade 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.72;
+  }
+}
+
 @keyframes hero-zoom {
   from {
     transform: scale(1);
@@ -90,16 +112,8 @@ main {
 }
 
 .shader-pulse {
-  background-image: linear-gradient(
-    110deg,
-    #18181b 0%,
-    #27272a 38%,
-    #3f3f46 50%,
-    #27272a 62%,
-    #18181b 100%
-  );
-  background-size: 200% 100%;
-  animation: shader-shimmer 1.25s ease-in-out infinite;
+  background-color: #27272a;
+  animation: skeleton-fade 1.6s ease-in-out infinite;
 }
 
 ::selection {

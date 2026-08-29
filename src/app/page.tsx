@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import ActivityFeedPanel from "@/components/ActivityFeedPanel";
+import AuthPromptButtons from "@/components/AuthPromptButtons";
 import HomeHero, { HomeHeroSkeleton } from "@/components/HomeHero";
+import { ActivityFeedSkeleton } from "@/components/LoadingSkeleton";
 import SpotlightShelf, {
   SpotlightShelfSkeleton,
 } from "@/components/SpotlightShelf";
@@ -29,6 +31,9 @@ async function FriendsLogsShelf({ signedIn }: { signedIn: boolean }) {
         title="Friends' Recent Logs"
         items={[]}
         emptyMessage="Sign in to see what friends are logging."
+        emptyChildren={
+          <AuthPromptButtons size="sm" className="justify-center" />
+        }
       />
     );
   }
@@ -58,12 +63,14 @@ async function FriendsLogsShelf({ signedIn }: { signedIn: boolean }) {
 async function DiscoverShelf() {
   const items = await getDiscoverSuggestions();
   return (
-    <SpotlightShelf
-      title="Discover"
-      items={items}
-      emptyIllustration="popcorn"
-      emptyMessage="Log, stash, or rate something and we'll suggest similar media here."
-    />
+    <div data-tutorial="discover">
+      <SpotlightShelf
+        title="Discover"
+        items={items}
+        emptyIllustration="popcorn"
+        emptyMessage="Log, stash, or rate something and we'll suggest similar media here."
+      />
+    </div>
   );
 }
 
@@ -79,23 +86,7 @@ async function HomeHeroSection({
 }
 
 function FeedSkeleton() {
-  return (
-    <div className="space-y-1.5">
-      {Array.from({ length: 6 }, (_, i) => (
-        <div
-          key={i}
-          className="flex items-start gap-3 rounded-xl bg-zinc-900/35 px-3.5 py-3"
-        >
-          <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-zinc-800" />
-          <div className="min-w-0 flex-1 space-y-2 py-0.5">
-            <div className="h-4 w-16 animate-pulse rounded-full bg-zinc-800/70" />
-            <div className="h-3.5 w-[85%] animate-pulse rounded bg-zinc-800" />
-          </div>
-          <div className="h-[3.25rem] w-[2.2rem] shrink-0 animate-pulse rounded-md bg-zinc-800" />
-        </div>
-      ))}
-    </div>
-  );
+  return <ActivityFeedSkeleton />;
 }
 
 export default async function HomePage() {
@@ -111,7 +102,10 @@ export default async function HomePage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-10 lg:py-12">
         <div className="grid grid-cols-1 items-start gap-8 md:gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-          <aside className="scrollbar-custom lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          <aside
+            data-tutorial="friend-activity"
+            className="scrollbar-custom lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
+          >
             <div className="mb-4">
               <h2 className="text-lg font-semibold tracking-tight text-zinc-100 sm:text-xl">
                 Friend activity

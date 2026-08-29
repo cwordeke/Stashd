@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { metaOnboardingCompleted, metaUsername } from "@/lib/jwt-auth";
+import {
+  metaOnboardingCompleted,
+  metaTutorialCompleted,
+  metaUsername,
+} from "@/lib/jwt-auth";
 
 /**
  * Align JWT user_metadata with the profiles row after OAuth or for legacy accounts.
@@ -16,12 +20,15 @@ export async function syncAuthMetadataFromProfile(
 
   const username = metaUsername(user);
   const onboardingCompleted = metaOnboardingCompleted(user);
+  const tutorialCompleted = metaTutorialCompleted(user);
 
-  if (username && onboardingCompleted !== null) return;
+  if (username && onboardingCompleted !== null && tutorialCompleted !== null) {
+    return;
+  }
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, onboarding_completed, preferred_categories")
+    .select("username, onboarding_completed, tutorial_completed, preferred_categories")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -36,11 +43,16 @@ export async function syncAuthMetadataFromProfile(
       typeof profile.onboarding_completed === "boolean"
         ? profile.onboarding_completed
         : true;
+    const nextTutorial =
+      typeof profile.tutorial_completed === "boolean"
+        ? profile.tutorial_completed
+        : true;
 
     await supabase.auth.updateUser({
       data: {
         username: profile.username,
         onboarding_completed: nextOnboarding,
+        tutorial_completed: nextTutorial,
         ...(profile.preferred_categories != null
           ? { preferred_categories: profile.preferred_categories }
           : {}),
@@ -49,9 +61,14 @@ export async function syncAuthMetadataFromProfile(
     return;
   }
 
-  if (onboardingCompleted === null) {
+  if (onboardingCompleted === null || tutorialCompleted === null) {
     await supabase.auth.updateUser({
-      data: { onboarding_completed: false },
+      data: {
+        ...(onboardingCompleted === null
+          ? { onboarding_completed: false }
+          : {}),
+        ...(tutorialCompleted === null ? { tutorial_completed: false } : {}),
+      },
     });
   }
 }

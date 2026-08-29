@@ -15,7 +15,9 @@ type AuthMode = "signin" | "signup";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<AuthMode>("signin");
+  const [mode, setMode] = useState<AuthMode>(() =>
+    searchParams.get("mode") === "signup" ? "signup" : "signin"
+  );
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "auth"

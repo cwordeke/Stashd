@@ -4,16 +4,17 @@ import { createClient } from "@/utils/supabase/server";
 import {
   exchangeSpotifyCode,
   getSpotifyRedirectUri,
-  verifySpotifyOAuthState,
+  parseSpotifyOAuthState,
 } from "@/lib/import/spotify-oauth";
 import { importSpotifySavedAlbums } from "@/lib/import/spotify";
 import { getRequestOrigin } from "@/lib/site-url";
 
-function settingsRedirect(
+function spotifyResultRedirect(
   origin: string,
+  returnTo: string,
   params: { success?: string; error?: string }
 ) {
-  const url = new URL("/settings", origin);
+  const url = new URL(returnTo, origin);
   if (params.success) url.searchParams.set("success", params.success);
   if (params.error) url.searchParams.set("error", params.error);
   return NextResponse.redirect(url);
@@ -23,9 +24,10 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const { hostname, searchParams } = url;
   const origin = getRequestOrigin(request);
+  let returnTo = "/settings";
   const fail = (reason: string) => {
     console.error("[spotify import]", reason);
-    return settingsRedirect(origin, { error: "spotify_failed" });
+    return spotifyResultRedirect(origin, returnTo, { error: "spotify_failed" });
   };
 
   if (searchParams.get("error")) {
@@ -56,7 +58,9 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!verifySpotifyOAuthState(state, user.id)) {
+  const oauthState = parseSpotifyOAuthState(state, user.id);
+  returnTo = oauthState.next;
+  if (!oauthState.valid) {
     return fail("Invalid or expired OAuth state");
   }
 
@@ -67,6 +71,7 @@ export async function GET(request: Request) {
     );
     await importSpotifySavedAlbums(supabase, user.id, accessToken);
     revalidatePath("/");
+    revalidatePath("/onboarding");
     revalidatePath("/settings");
     revalidatePath("/media", "layout");
   } catch (error) {
@@ -74,5 +79,5 @@ export async function GET(request: Request) {
     return fail(error instanceof Error ? error.message : "Import failed");
   }
 
-  return settingsRedirect(origin, { success: "spotify" });
+  return spotifyResultRedirect(origin, returnTo, { success: "spotify" });
 }

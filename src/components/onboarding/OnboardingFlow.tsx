@@ -18,6 +18,50 @@ import { type MediaType } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
 
 const TOTAL_STEPS = 3;
+const ONBOARDING_DRAFT_KEY = "stashd-onboarding-draft";
+
+interface OnboardingDraft {
+  username: string;
+  ranked: MediaType[];
+  step: number;
+}
+
+function readOnboardingDraft(): OnboardingDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(ONBOARDING_DRAFT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Partial<OnboardingDraft>;
+    if (typeof data.username !== "string" || !Array.isArray(data.ranked)) {
+      return null;
+    }
+    const step =
+      typeof data.step === "number" && data.step >= 0 && data.step < TOTAL_STEPS
+        ? data.step
+        : 0;
+    return { username: data.username, ranked: data.ranked, step };
+  } catch {
+    return null;
+  }
+}
+
+function writeOnboardingDraft(draft: OnboardingDraft) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // Ignore quota / private-mode errors.
+  }
+}
+
+function clearOnboardingDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(ONBOARDING_DRAFT_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
 
 const stepVariants = {
   enter: (direction: number) => ({
@@ -33,15 +77,19 @@ const stepVariants = {
 
 interface OnboardingFlowProps {
   initialUsername: string;
+  initialStep?: number;
+  spotifyStatus?: "success" | "error" | null;
 }
 
 export default function OnboardingFlow({
   initialUsername,
+  initialStep = 0,
+  spotifyStatus = null,
 }: OnboardingFlowProps) {
   const router = useRouter();
   const { beginNavigation } = useNavigationPending();
   const reduceMotion = useReducedMotion();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(spotifyStatus ? 2 : initialStep);
   const [direction, setDirection] = useState(1);
   const [username, setUsername] = useState(initialUsername);
   const [ranked, setRanked] = useState<MediaType[]>([]);
@@ -63,7 +111,6 @@ export default function OnboardingFlow({
       return;
     }
 
-    const href = `/u/${username.trim().toLowerCase()}`;
     setBusy(true);
     setLeaving(true);
 
@@ -87,13 +134,27 @@ export default function OnboardingFlow({
       data: {
         username: result.username,
         onboarding_completed: true,
+        tutorial_completed: false,
         preferred_categories: ranked,
       },
     });
 
-    beginNavigation(href);
-    router.replace(`/u/${result.username}`);
+    beginNavigation("/");
+    clearOnboardingDraft();
+    router.replace("/");
   }, [username, ranked, goTo, beginNavigation, router]);
+
+  useEffect(() => {
+    const draft = readOnboardingDraft();
+    if (!draft) return;
+    if (draft.username) setUsername(draft.username);
+    if (draft.ranked.length > 0) setRanked(draft.ranked);
+    if (!spotifyStatus && draft.step > 0) setStep(draft.step);
+  }, [spotifyStatus]);
+
+  useEffect(() => {
+    writeOnboardingDraft({ username, ranked, step });
+  }, [username, ranked, step]);
 
   const continueFromIdentity = useCallback(async () => {
     if (busy) return;
@@ -231,6 +292,7 @@ export default function OnboardingFlow({
                   <StepImport
                     onContinue={() => void finish()}
                     onImported={() => void finish()}
+                    spotifyStatus={spotifyStatus}
                   />
                 ) : null}
               </motion.div>

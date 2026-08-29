@@ -28,9 +28,9 @@ const PLATFORMS = [
   {
     id: "spotify",
     name: "Spotify",
-    blurb: "Albums you’ve saved and played on repeat.",
+    blurb: "One-time import of saved albums as Listened.",
     icon: "/spotifyIcon.png",
-    active: false,
+    active: true,
   },
   {
     id: "steam",
@@ -51,11 +51,13 @@ const PLATFORMS = [
 interface StepImportProps {
   onContinue: () => void;
   onImported: () => void;
+  spotifyStatus?: "success" | "error" | null;
 }
 
 export default function StepImport({
   onContinue,
   onImported,
+  spotifyStatus = null,
 }: StepImportProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -153,6 +155,18 @@ export default function StepImport({
         </p>
       </div>
 
+      {spotifyStatus === "success" ? (
+        <p className="text-sm text-emerald-400">
+          Imported your Spotify saved albums as Listened. They show as Listened
+          on album pages and can feed recommendations.
+        </p>
+      ) : null}
+      {spotifyStatus === "error" ? (
+        <p className="text-sm text-red-400">
+          Couldn’t connect to Spotify. Try again, or allow access when prompted.
+        </p>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {PLATFORMS.map((platform) => (
           <motion.div
@@ -247,6 +261,13 @@ export default function StepImport({
               >
                 Connect
               </button>
+            ) : platform.id === "spotify" ? (
+              <a
+                href="/api/spotify/login?next=/onboarding"
+                className="mt-4 block w-full border border-white/10 px-3 py-2 text-center text-[12px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+              >
+                Connect
+              </a>
             ) : (
               <button
                 type="button"

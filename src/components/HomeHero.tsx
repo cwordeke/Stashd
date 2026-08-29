@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import NavLink from "@/components/NavLink";
+import AuthPromptButtons from "@/components/AuthPromptButtons";
+import { Skeleton } from "@/components/LoadingSkeleton";
 import { CATEGORY_META } from "@/lib/constants";
 import type { HeroSlide } from "@/lib/home-hero";
 import { MEDIA_TYPES } from "@/lib/types";
@@ -112,8 +114,15 @@ export default function HomeHero({
         <p className="mt-2 max-w-xl text-sm text-zinc-300 sm:text-[15px]">
           {signedIn
             ? "See what your friends are logging and discover new media."
-            : "Track movies, TV, games, books, and music — then follow friends to fill your feed."}
+            : "Your social diary for movies, TV, games, books, and music."}
         </p>
+
+        {!signedIn ? (
+          <AuthPromptButtons
+            className="mt-5"
+            primaryLabel="Create free account"
+          />
+        ) : null}
 
         {activeSlide ? (
           <p className="mt-3 text-sm text-zinc-400 transition-opacity duration-500">
@@ -128,7 +137,7 @@ export default function HomeHero({
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2" data-tutorial="hero-categories">
           {MEDIA_TYPES.map((type) => (
             <NavLink
               key={type}
@@ -166,17 +175,20 @@ export default function HomeHero({
 
 export function HomeHeroSkeleton() {
   return (
-    <section className="relative min-h-[300px] overflow-hidden bg-zinc-900 sm:min-h-[360px] md:min-h-[420px] lg:min-h-[460px]">
-      <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-zinc-800/50 via-zinc-900 to-zinc-950" />
+    <section className="relative min-h-[300px] overflow-hidden bg-zinc-950 sm:min-h-[360px] md:min-h-[420px] lg:min-h-[460px]">
+      <Skeleton className="absolute inset-0 rounded-none" />
       <div className="relative mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-end px-4 pb-8 pt-28 sm:px-6 md:pb-10 md:pt-32">
-        <div className="h-9 w-full max-w-sm animate-pulse rounded bg-zinc-800/80" />
-        <div className="mt-3 h-4 w-full max-w-md animate-pulse rounded bg-zinc-800/60" />
+        <Skeleton className="h-9 w-full max-w-sm rounded-md" />
+        <Skeleton className="mt-3 h-4 w-full max-w-md rounded-md" />
+        <Skeleton className="mt-3 h-4 w-48 rounded-md" />
         <div className="mt-4 flex flex-wrap gap-2">
           {MEDIA_TYPES.map((type) => (
-            <div
-              key={type}
-              className="h-7 w-16 animate-pulse rounded-full bg-zinc-800/60"
-            />
+            <Skeleton key={type} className="h-7 w-16 rounded-full" />
+          ))}
+        </div>
+        <div className="mt-5 flex gap-1.5">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} className="h-1 w-1.5 rounded-full" />
           ))}
         </div>
       </div>

@@ -12,6 +12,7 @@ import {
 
 interface ProfileDiaryTabProps {
   entries: DiaryEntry[];
+  showTutorialAnchor?: boolean;
 }
 
 interface DiaryGroup {
@@ -20,14 +21,19 @@ interface DiaryGroup {
   entries: DiaryEntry[];
 }
 
-export default function ProfileDiaryTab({ entries }: ProfileDiaryTabProps) {
+export default function ProfileDiaryTab({
+  entries,
+  showTutorialAnchor = false,
+}: ProfileDiaryTabProps) {
   if (!entries.length) {
     return (
-      <EmptyState
-        illustration="empty-stash"
-        title="No diary entries yet"
-        description="When you log media, it will appear here by date."
-      />
+      <div {...(showTutorialAnchor ? { "data-tutorial": "profile-diary" } : {})}>
+        <EmptyState
+          illustration="empty-stash"
+          title="No diary entries yet"
+          description="When you log media, it will appear here by date."
+        />
+      </div>
     );
   }
 
@@ -36,7 +42,10 @@ export default function ProfileDiaryTab({ entries }: ProfileDiaryTabProps) {
   const groups = groupByMonth(withFlags);
 
   return (
-    <div className="space-y-10">
+    <div
+      className="space-y-10"
+      {...(showTutorialAnchor ? { "data-tutorial": "profile-diary" } : {})}
+    >
       {groups.map((group) => (
         <section key={group.key} className="space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
