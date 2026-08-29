@@ -1,4 +1,10 @@
 import { getOwnProfile } from "@/lib/profile";
+import {
+  getServerClaims,
+  requireAuthenticatedUser,
+} from "@/lib/auth-guards";
+import { isOnboardingDone } from "@/lib/jwt-auth";
+import { redirect } from "next/navigation";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
 export const metadata = {
@@ -10,10 +16,20 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<{ success?: string; error?: string }>;
 }) {
-  const [{ success, error }, profile] = await Promise.all([
+  await requireAuthenticatedUser("/onboarding");
+
+  const [{ success, error }, profile, claims] = await Promise.all([
     searchParams,
     getOwnProfile(),
+    getServerClaims(),
   ]);
+
+  if (isOnboardingDone(claims.username, claims.onboardingCompleted)) {
+    const username = claims.username ?? profile?.username;
+    if (username) {
+      redirect(`/u/${username}`);
+    }
+  }
 
   const spotifyStatus =
     success === "spotify"
@@ -24,7 +40,7 @@ export default async function OnboardingPage({
 
   return (
     <OnboardingFlow
-      initialUsername={profile?.username ?? ""}
+      initialUsername={profile?.username ?? claims.username ?? ""}
       initialStep={spotifyStatus ? 2 : 0}
       spotifyStatus={spotifyStatus}
     />

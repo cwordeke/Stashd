@@ -82,6 +82,11 @@ export async function signUpWithEmail(
     return { error: "An account with this email already exists" };
   }
 
+  if (!data.session) {
+    revalidatePath("/", "layout");
+    redirect("/login?confirm=email");
+  }
+
   await supabase.auth.updateUser({
     data: { onboarding_completed: false, tutorial_completed: false },
   });

@@ -19,11 +19,15 @@ function LoginForm() {
     searchParams.get("mode") === "signup" ? "signup" : "signin"
   );
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [error, setError] = useState<string | null>(
-    searchParams.get("error") === "auth"
-      ? "Sign-in failed. Please try again."
-      : null
-  );
+  const [error, setError] = useState<string | null>(() => {
+    if (searchParams.get("error") === "auth") {
+      return "Sign-in failed. Please try again.";
+    }
+    if (searchParams.get("confirm") === "email") {
+      return "Check your email to confirm your account, then sign in.";
+    }
+    return null;
+  });
 
   const nextPath = safeRelativePath(
     searchParams.get("next"),

@@ -1,7 +1,5 @@
 import type { JwtPayload } from "@supabase/supabase-js";
 
-export const PROFILE_LOOKUP_TIMEOUT_MS = 3000;
-
 type MetadataCarrier = {
   user_metadata?: Record<string, unknown>;
 };
@@ -47,9 +45,15 @@ export function isOnboardingDone(
   );
 }
 
+export type ClaimsSummary = {
+  userId: string | null;
+  username: string | null;
+  onboardingCompleted: boolean | null;
+};
+
 export function claimsFromJwt(
   claims: JwtPayload | null | undefined
-): { userId: string | null; username: string | null; onboardingCompleted: boolean | null } {
+): ClaimsSummary {
   if (!claims?.sub) {
     return { userId: null, username: null, onboardingCompleted: null };
   }
