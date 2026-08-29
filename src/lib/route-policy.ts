@@ -49,6 +49,14 @@ export function isAuthEntryRoute(pathname: string): boolean {
   );
 }
 
+/** Routes whose middleware work should not be prefetched aggressively. */
+export function isAuthSensitivePrefetchPath(pathname: string): boolean {
+  const path = normalizePathname(pathname);
+  if (isAuthEntryRoute(path)) return true;
+  if (isProtectedRoute(path)) return true;
+  return false;
+}
+
 export function shouldSkipMiddleware(pathname: string): boolean {
   if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return true;

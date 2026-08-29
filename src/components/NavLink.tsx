@@ -3,6 +3,7 @@
 import Link, { type LinkProps } from "next/link";
 import type { ReactNode, MouseEvent } from "react";
 import { useNavigationPending } from "@/context/NavigationPendingContext";
+import { isAuthSensitivePrefetchPath } from "@/lib/route-policy";
 
 type NavLinkProps = LinkProps & {
   children: ReactNode;
@@ -19,11 +20,12 @@ export default function NavLink({
 }: NavLinkProps) {
   const { beginNavigation } = useNavigationPending();
   const target = typeof href === "string" ? href : href.pathname || "/";
+  const prefetchEnabled = !isAuthSensitivePrefetchPath(target);
 
   return (
     <Link
       href={href}
-      prefetch
+      prefetch={prefetchEnabled}
       onClick={(event) => {
         if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
           beginNavigation(target);

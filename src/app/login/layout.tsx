@@ -1,10 +1,14 @@
-import { redirectAuthenticatedFromAuthEntry } from "@/lib/auth-guards";
+import LoginAuthenticatedRedirect from "@/components/LoginAuthenticatedRedirect";
 
-export default async function LoginLayout({
+export default function LoginLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await redirectAuthenticatedFromAuthEntry();
-  return children;
+  return (
+    <>
+      <LoginAuthenticatedRedirect />
+      {children}
+    </>
+  );
 }
