@@ -1,4 +1,8 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { getAuthClaims } from "@/lib/profile";
+import { createRequestTimer } from "@/lib/request-timing";
+import { withTimeout } from "@/lib/with-timeout";
 import { getSimilarGames, getNewGames } from "@/lib/providers/igdb";
 import { getNewBooks, searchBooks } from "@/lib/providers/openlibrary";
 import { getNewMusic, searchMusic } from "@/lib/providers/spotify";
@@ -18,7 +22,11 @@ import {
 } from "@/lib/types";
 
 const SHELF_SIZE = 16;
-const MAX_SEEDS = 12;
+const MAX_SEEDS = 6;
+const TASTE_ROW_LIMIT = 120;
+const TASTE_QUERY_TIMEOUT_MS = 5_000;
+const RECOMMENDATION_TIMEOUT_MS = 4_000;
+const DISCOVER_TOTAL_TIMEOUT_MS = 10_000;
 
 interface TasteSeed {
   id: string;
@@ -57,14 +65,22 @@ function interleave(
 }
 
 export async function getPopularThisWeek(): Promise<UnifiedMediaItem[]> {
-  const columns = await Promise.all(
-    MEDIA_TYPES.map(async (type) => {
-      const { results } = await getTrendingForType(type);
-      return results;
-    })
-  );
-  return interleave(columns, SHELF_SIZE);
+  return getCachedPopularThisWeek();
 }
+
+const getCachedPopularThisWeek = unstable_cache(
+  async () => {
+    const columns = await Promise.all(
+      MEDIA_TYPES.map(async (type) => {
+        const { results } = await getTrendingForType(type);
+        return results;
+      })
+    );
+    return interleave(columns, SHELF_SIZE);
+  },
+  ["popular-this-week-v1"],
+  { revalidate: 3600 }
+);
 
 export async function getNewReleases(): Promise<UnifiedMediaItem[]> {
   const settled = await Promise.allSettled([
@@ -133,25 +149,32 @@ function pickSeeds(seeds: TasteSeed[]): TasteSeed[] {
 }
 
 async function recommendationsFor(seed: TasteSeed): Promise<UnifiedMediaItem[]> {
-  try {
-    switch (seed.mediaType) {
-      case "movie":
-      case "tv":
-        return await getTmdbRecommendations(seed.mediaType, seed.id);
-      case "game":
-        return await getSimilarGames(seed.id);
-      case "book": {
-        const query = creatorQuery(seed.creator, seed.title);
-        return query ? await searchBooks(query) : [];
+  return withTimeout(
+    (async () => {
+      try {
+        switch (seed.mediaType) {
+          case "movie":
+          case "tv":
+            return await getTmdbRecommendations(seed.mediaType, seed.id);
+          case "game":
+            return await getSimilarGames(seed.id);
+          case "book": {
+            const query = creatorQuery(seed.creator, seed.title);
+            return query ? await searchBooks(query) : [];
+          }
+          case "music": {
+            const query = creatorQuery(seed.creator, seed.title);
+            return query ? await searchMusic(query) : [];
+          }
+        }
+      } catch {
+        return [];
       }
-      case "music": {
-        const query = creatorQuery(seed.creator, seed.title);
-        return query ? await searchMusic(query) : [];
-      }
-    }
-  } catch {
-    return [];
-  }
+      return [];
+    })(),
+    RECOMMENDATION_TIMEOUT_MS,
+    []
+  );
 }
 
 function upsertSeed(
@@ -196,29 +219,49 @@ async function loadTaste(userId: string): Promise<{
   seeds: TasteSeed[];
   seen: Set<string>;
 }> {
+  return withTimeout(loadTasteRows(userId), TASTE_QUERY_TIMEOUT_MS, {
+    seeds: [],
+    seen: new Set<string>(),
+  });
+}
+
+async function loadTasteRows(userId: string): Promise<{
+  seeds: TasteSeed[];
+  seen: Set<string>;
+}> {
   const supabase = await createClient();
 
   const [ratingsRes, logsRes, diaryRes, stashRes, listRes] = await Promise.all([
     supabase
       .from("user_ratings")
       .select("media_id, media_type, rating, title, creator")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(TASTE_ROW_LIMIT),
     supabase
       .from("user_media_logs")
       .select("media_id, media_type, title, creator, is_liked, on_list, status")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(TASTE_ROW_LIMIT),
     supabase
       .from("diary_entries")
       .select("media_id, media_type, title, creator, rating, is_liked")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(TASTE_ROW_LIMIT),
     supabase
       .from("stash_items")
       .select("media_id, media_type, title, creator")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(TASTE_ROW_LIMIT),
     supabase
       .from("list_items")
       .select("media_id, media_type, title, creator")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(TASTE_ROW_LIMIT),
   ]);
 
   const seen = new Set<string>();
@@ -261,26 +304,37 @@ async function loadTaste(userId: string): Promise<{
   return { seeds: pickSeeds([...byKey.values()]), seen };
 }
 
-/** Personal picks from the full profile history; falls back to popular new releases. */
-export async function getDiscoverSuggestions(): Promise<UnifiedMediaItem[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+/** Personal picks from recent profile history; falls back to popular new releases. */
+async function loadDiscoverSuggestions(): Promise<UnifiedMediaItem[]> {
+  const timer = createRequestTimer("home");
+  timer.mark("discover-start");
 
-  if (!user) {
+  const claims = await getAuthClaims();
+  if (!claims.userId) {
+    timer.mark("discover-anonymous-fallback");
     return getNewReleases();
   }
 
-  const { seeds, seen } = await loadTaste(user.id);
+  timer.mark("discover-load-taste-start");
+  const { seeds, seen } = await loadTaste(claims.userId);
+  timer.mark("discover-load-taste-ready", { seedCount: seeds.length });
+
   if (seeds.length === 0) {
     return interleave([await getNewReleases()], SHELF_SIZE, seen);
   }
 
-  const groups = await Promise.all(seeds.map((seed) => recommendationsFor(seed)));
+  const groups = await Promise.all(
+    seeds.map((seed) => recommendationsFor(seed))
+  );
+  timer.mark("discover-recommendations-ready", { groupCount: groups.length });
+
   const picks = interleave(groups, SHELF_SIZE, seen);
   if (picks.length > 0) return picks;
 
   const fallback = await getNewReleases();
   return interleave([picks, fallback], SHELF_SIZE, seen);
+}
+
+export async function getDiscoverSuggestions(): Promise<UnifiedMediaItem[]> {
+  return withTimeout(loadDiscoverSuggestions(), DISCOVER_TOTAL_TIMEOUT_MS, []);
 }

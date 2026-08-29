@@ -3,6 +3,7 @@ import {
   parsePreferredCategories,
   resolvePreferredCategories,
 } from "@/lib/media-order";
+import { claimsFromJwt, type ClaimsSummary } from "@/lib/jwt-auth";
 import { createClient } from "@/utils/supabase/server";
 import { normalizeUsername } from "@/lib/username";
 import type { MediaType } from "@/lib/types";
@@ -74,11 +75,52 @@ export const getProfileByUserId = cache(
   }
 );
 
-export const getOwnProfile = cache(async (): Promise<Profile | null> => {
+export const getAuthClaims = cache(async (): Promise<ClaimsSummary> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+
+  if (error) {
+    console.error("[auth] getClaims failed", { message: error.message });
+  }
+
+  return claimsFromJwt(data?.claims);
+});
+
+/** Username only — avoids the multi-fallback profile select on hot paths like `/`. */
+export const getProfileUsernameByUserId = cache(
+  async (userId: string): Promise<string | null> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[profile] username lookup failed", { message: error.message });
+      return null;
+    }
+
+    return typeof data?.username === "string" ? data.username : null;
+  }
+);
+
+export const getAuthUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("[auth] getUser failed", { message: error.message });
+  }
+
+  return user ?? null;
+});
+
+export const getOwnProfile = cache(async (): Promise<Profile | null> => {
+  const user = await getAuthUser();
 
   if (!user) return null;
   const profile = await getProfileByUserId(user.id);

@@ -1,5 +1,9 @@
 import { tmdbBackdrop } from "@/lib/media";
+import { fetchTmdbTrendingWeekPage } from "@/lib/providers/tmdb";
 import { mediaDetailPath } from "@/lib/types";
+import { withTimeout } from "@/lib/with-timeout";
+
+const HERO_FETCH_TIMEOUT_MS = 6_000;
 
 export interface HeroSlide {
   imageUrl: string;
@@ -21,21 +25,10 @@ async function getTmdbHeroSlides(
   mediaType: "movie" | "tv",
   limit: number
 ): Promise<HeroSlide[]> {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) return [];
-
-  const url = new URL(
-    `https://api.themoviedb.org/3/trending/${mediaType}/week`
-  );
-  url.searchParams.set("api_key", apiKey);
-
-  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
-  if (!res.ok) return [];
-
-  const data = (await res.json()) as { results?: TmdbTrendingItem[] };
+  const data = await fetchTmdbTrendingWeekPage(mediaType, 1);
   const slides: HeroSlide[] = [];
 
-  for (const item of data.results ?? []) {
+  for (const item of (data.results ?? []) as TmdbTrendingItem[]) {
     const imageUrl = tmdbBackdrop(item.backdrop_path, "w1280");
     if (!imageUrl) continue;
 
@@ -74,6 +67,10 @@ function interleaveSlides(groups: HeroSlide[][], limit: number): HeroSlide[] {
 
 /** Cinematic hero imagery — TMDB backdrops only so framing stays landscape. */
 export async function getHeroSlides(limit = 8): Promise<HeroSlide[]> {
+  return withTimeout(loadHeroSlides(limit), HERO_FETCH_TIMEOUT_MS, []);
+}
+
+async function loadHeroSlides(limit = 8): Promise<HeroSlide[]> {
   const [movies, tv] = await Promise.allSettled([
     getTmdbHeroSlides("movie", limit),
     getTmdbHeroSlides("tv", limit),

@@ -1,6 +1,7 @@
 "use server";
 
 import { cache } from "react";
+import { getAuthClaims } from "@/lib/profile";
 import { createClient } from "@/utils/supabase/server";
 import { mediaStatusLabels } from "@/lib/media-status";
 import {
@@ -255,17 +256,17 @@ function actorFrom(
 }
 
 async function loadSocialFeed(): Promise<FeedItem[]> {
+  const startedAt = performance.now();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const claims = await getAuthClaims();
+  const userId = claims.userId;
 
-  if (!user) return [];
+  if (!userId) return [];
 
   const { data: followingRows, error: followingError } = await supabase
     .from("follows")
     .select("following_id")
-    .eq("follower_id", user.id);
+    .eq("follower_id", userId);
 
   if (followingError) {
     console.error("[getSocialFeed] following:", followingError.message);
@@ -537,7 +538,14 @@ async function loadSocialFeed(): Promise<FeedItem[]> {
   }
 
   items.sort((a, b) => feedTimestamp(b.createdAt) - feedTimestamp(a.createdAt));
-  return items.slice(0, FEED_LIMIT);
+  const result = items.slice(0, FEED_LIMIT);
+  if (process.env.HOME_TIMING === "1" || process.env.VERCEL === "1") {
+    console.info("[home] social-feed-ready", {
+      sinceStartMs: Math.round(performance.now() - startedAt),
+      itemCount: result.length,
+    });
+  }
+  return result;
 }
 
 export const getSocialFeed = cache(loadSocialFeed);

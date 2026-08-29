@@ -8,7 +8,8 @@ import {
 import { getMiddlewareMode } from "@/lib/route-policy";
 import { getSupabaseEnv } from "@/utils/supabase/env";
 
-const MIDDLEWARE_TIMING = process.env.MIDDLEWARE_TIMING === "1";
+const MIDDLEWARE_TIMING =
+  process.env.MIDDLEWARE_TIMING === "1" || process.env.VERCEL === "1";
 
 function redirectWithSession(url: URL, sessionResponse: NextResponse): NextResponse {
   const response = NextResponse.redirect(url);
@@ -78,6 +79,10 @@ export async function updateSession(request: NextRequest) {
   const startedAt = Date.now();
   const pathname = request.nextUrl.pathname;
   const mode = getMiddlewareMode(pathname);
+
+  if (MIDDLEWARE_TIMING) {
+    console.info("[middleware] start", { pathname, mode });
+  }
 
   if (mode === "skip" || mode === "public") {
     logMiddlewareTiming(pathname, mode, startedAt, "bypass");

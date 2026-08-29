@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withTimeout } from "@/lib/with-timeout";
 import { searchBooks } from "@/lib/providers/openlibrary";
 import { searchGames } from "@/lib/providers/igdb";
 import { searchMusic } from "@/lib/providers/spotify";
@@ -10,24 +11,6 @@ export const dynamic = "force-dynamic";
 const PROVIDER_TIMEOUT_MS = 2500;
 
 type ProviderKey = "tmdb" | "game" | "book" | "music";
-
-async function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((resolve) => {
-        timer = setTimeout(() => resolve(fallback), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
 
 function sliceLimit(items: UnifiedMediaItem[], limit: number | null) {
   if (limit == null || limit <= 0) return items;

@@ -1,6 +1,10 @@
+import { cache } from "react";
 import { tmdbPoster, yearFromDate } from "@/lib/media";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { isoDate, recentReleaseWindow } from "@/lib/release-window";
 import type { UnifiedMediaItem } from "@/lib/types";
+
+const TMDB_FETCH_TIMEOUT_MS = 6_000;
 
 interface TmdbListItem {
   id: number;
@@ -15,29 +19,41 @@ interface TmdbListResponse {
   results?: TmdbListItem[];
 }
 
+/** Per-request deduped TMDB trending/week fetch shared by hero + popular shelf. */
+export const fetchTmdbTrendingWeekPage = cache(
+  async (mediaType: "movie" | "tv", page = 1): Promise<TmdbListResponse> => {
+    const apiKey = process.env.TMDB_API_KEY;
+    if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
+
+    const url = new URL(
+      `https://api.themoviedb.org/3/trending/${mediaType}/week`
+    );
+    url.searchParams.set("api_key", apiKey);
+    url.searchParams.set("page", String(page));
+
+    const res = await fetchWithTimeout(url.toString(), {
+      next: { revalidate: 86400 },
+      timeoutMs: TMDB_FETCH_TIMEOUT_MS,
+    });
+    if (!res?.ok) {
+      throw new Error(
+        `TMDB trending ${mediaType} failed: ${res?.status ?? "timeout"}`
+      );
+    }
+
+    return (await res.json()) as TmdbListResponse;
+  }
+);
+
 async function getTmdbTrending(
   mediaType: "movie" | "tv",
   limit: number
 ): Promise<UnifiedMediaItem[]> {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) throw new Error("TMDB_API_KEY is not configured");
-
   const pageCount = Math.max(1, Math.ceil(limit / 20));
   const pages = await Promise.all(
-    Array.from({ length: pageCount }, async (_, index) => {
-      const url = new URL(
-        `https://api.themoviedb.org/3/trending/${mediaType}/week`
-      );
-      url.searchParams.set("api_key", apiKey);
-      url.searchParams.set("page", String(index + 1));
-
-      const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
-      if (!res.ok) {
-        throw new Error(`TMDB trending ${mediaType} failed: ${res.status}`);
-      }
-
-      return (await res.json()) as TmdbListResponse;
-    })
+    Array.from({ length: pageCount }, (_, index) =>
+      fetchTmdbTrendingWeekPage(mediaType, index + 1)
+    )
   );
 
   const seen = new Set<string>();
@@ -150,8 +166,11 @@ export async function getTmdbRecommendations(
   );
   url.searchParams.set("api_key", apiKey);
 
-  const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
-  if (!res.ok) return [];
+  const res = await fetchWithTimeout(url.toString(), {
+    next: { revalidate: 86400 },
+    timeoutMs: TMDB_FETCH_TIMEOUT_MS,
+  });
+  if (!res?.ok) return [];
 
   const data = (await res.json()) as TmdbListResponse;
   return mapTmdbList(data.results, mediaType, 10);

@@ -8,60 +8,82 @@ import SpotlightShelf, {
 } from "@/components/SpotlightShelf";
 import { getSocialFeed } from "@/app/actions/feed";
 import { getDiscoverSuggestions, getPopularThisWeek } from "@/lib/discover";
+import { getHomeAuthState } from "@/lib/home-auth";
 import { getHeroSlides } from "@/lib/home-hero";
-import { getOwnProfile } from "@/lib/profile";
+import { createRequestTimer } from "@/lib/request-timing";
+import { withTimeout } from "@/lib/with-timeout";
 import { mediaKey, type UnifiedMediaItem } from "@/lib/types";
 
 export const revalidate = 86400;
 
-async function HomeFeed({ signedIn }: { signedIn: boolean }) {
-  const items = signedIn ? await getSocialFeed() : [];
-  return <ActivityFeedPanel initialItems={items} signedIn={signedIn} />;
-}
+const FEED_TIMEOUT_MS = 8_000;
+const SHELF_TIMEOUT_MS = 10_000;
 
-async function PopularShelf() {
-  const items = await getPopularThisWeek();
-  return <SpotlightShelf title="Popular This Week" items={items} />;
-}
+async function HomeHeroSection() {
+  const timer = createRequestTimer("home");
+  timer.mark("hero-start");
 
-async function FriendsLogsShelf({ signedIn }: { signedIn: boolean }) {
-  if (!signedIn) {
-    return (
-      <SpotlightShelf
-        title="Friends' Recent Logs"
-        items={[]}
-        emptyMessage="Sign in to see what friends are logging."
-        emptyChildren={
-          <AuthPromptButtons size="sm" className="justify-center" />
-        }
-      />
-    );
-  }
+  const [slides, auth] = await Promise.all([
+    getHeroSlides(),
+    getHomeAuthState(),
+  ]);
 
-  const feed = await getSocialFeed();
-  const seen = new Set<string>();
-  const items: Array<UnifiedMediaItem & { rating?: number | null }> = [];
-
-  for (const event of feed) {
-    if (event.kind !== "log") continue;
-    const key = mediaKey(event.media);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    items.push({ ...event.media, rating: event.rating });
-    if (items.length >= 16) break;
-  }
+  timer.mark("hero-ready", {
+    slideCount: slides.length,
+    signedIn: auth.signedIn,
+  });
 
   return (
-    <SpotlightShelf
-      title="Friends' Recent Logs"
-      items={items}
-      emptyMessage="Follow people to see what they're watching, playing, and reading."
+    <HomeHero
+      slides={slides}
+      username={auth.username}
+      signedIn={auth.signedIn}
     />
   );
 }
 
+async function HomeFeed() {
+  const timer = createRequestTimer("home");
+  timer.mark("feed-start");
+
+  const auth = await getHomeAuthState();
+  const items = auth.signedIn
+    ? await withTimeout(getSocialFeed(), FEED_TIMEOUT_MS, [])
+    : [];
+
+  timer.mark("feed-ready", {
+    signedIn: auth.signedIn,
+    itemCount: items.length,
+  });
+
+  return <ActivityFeedPanel initialItems={items} signedIn={auth.signedIn} />;
+}
+
+async function PopularShelf() {
+  const timer = createRequestTimer("home");
+  timer.mark("popular-start");
+
+  const items = await withTimeout(
+    getPopularThisWeek(),
+    SHELF_TIMEOUT_MS,
+    [] as UnifiedMediaItem[]
+  );
+
+  timer.mark("popular-ready", { itemCount: items.length });
+  return <SpotlightShelf title="Popular This Week" items={items} />;
+}
+
 async function DiscoverShelf() {
-  const items = await getDiscoverSuggestions();
+  const timer = createRequestTimer("home");
+  timer.mark("discover-shelf-start");
+
+  const items = await withTimeout(
+    getDiscoverSuggestions(),
+    SHELF_TIMEOUT_MS,
+    [] as UnifiedMediaItem[]
+  );
+
+  timer.mark("discover-shelf-ready", { itemCount: items.length });
   return (
     <div data-tutorial="discover">
       <SpotlightShelf
@@ -74,30 +96,60 @@ async function DiscoverShelf() {
   );
 }
 
-async function HomeHeroSection({
-  username,
-  signedIn,
-}: {
-  username?: string;
-  signedIn: boolean;
-}) {
-  const slides = await getHeroSlides();
-  return <HomeHero slides={slides} username={username} signedIn={signedIn} />;
+async function FriendsLogsShelf() {
+  const timer = createRequestTimer("home");
+  timer.mark("friends-logs-start");
+
+  const auth = await getHomeAuthState();
+  if (!auth.signedIn) {
+    timer.mark("friends-logs-anonymous");
+    return (
+      <SpotlightShelf
+        title="Friends' Recent Logs"
+        items={[]}
+        emptyMessage="Sign in to see what friends are logging."
+        emptyChildren={
+          <AuthPromptButtons size="sm" className="justify-center" />
+        }
+      />
+    );
+  }
+
+  const feed = await withTimeout(getSocialFeed(), FEED_TIMEOUT_MS, []);
+  const seen = new Set<string>();
+  const items: Array<UnifiedMediaItem & { rating?: number | null }> = [];
+
+  for (const event of feed) {
+    if (event.kind !== "log") continue;
+    const key = mediaKey(event.media);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push({ ...event.media, rating: event.rating });
+    if (items.length >= 16) break;
+  }
+
+  timer.mark("friends-logs-ready", { itemCount: items.length });
+
+  return (
+    <SpotlightShelf
+      title="Friends' Recent Logs"
+      items={items}
+      emptyMessage="Follow people to see what they're watching, playing, and reading."
+    />
+  );
 }
 
 function FeedSkeleton() {
   return <ActivityFeedSkeleton />;
 }
 
-export default async function HomePage() {
-  const profile = await getOwnProfile();
-  const username = profile?.username;
-  const signedIn = Boolean(profile);
+export default function HomePage() {
+  createRequestTimer("home").mark("page-shell-start");
 
   return (
     <>
       <Suspense fallback={<HomeHeroSkeleton />}>
-        <HomeHeroSection username={username} signedIn={signedIn} />
+        <HomeHeroSection />
       </Suspense>
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-10 lg:py-12">
@@ -112,7 +164,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <Suspense fallback={<FeedSkeleton />}>
-              <HomeFeed signedIn={signedIn} />
+              <HomeFeed />
             </Suspense>
           </aside>
 
@@ -126,7 +178,7 @@ export default async function HomePage() {
             <Suspense
               fallback={<SpotlightShelfSkeleton title="Friends' Recent Logs" />}
             >
-              <FriendsLogsShelf signedIn={signedIn} />
+              <FriendsLogsShelf />
             </Suspense>
           </div>
         </div>
