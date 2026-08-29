@@ -231,3 +231,9 @@ select:disabled,
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
 }
+
+/* Minimum 44×44px touch targets for mobile usability (WCAG 2.5.5) */
+.touch-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}

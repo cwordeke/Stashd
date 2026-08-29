@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { safeClientMessage } from "@/lib/server-action-utils";
 import {
   EMPTY_MEDIA_LOG,
   completedStatusFor,
@@ -72,7 +73,8 @@ export async function setMediaLogState(
     thumbnail?: string | null;
   }
 ): Promise<MediaLogActionResult> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -98,9 +100,10 @@ export async function setMediaLogState(
     .maybeSingle();
 
   if (fetchError) {
+    console.error("[setMediaLogState]", fetchError.message);
     return {
       ok: false,
-      message: `${fetchError.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
+      message: "Could not update your log. Please try again.",
     };
   }
 
@@ -112,7 +115,8 @@ export async function setMediaLogState(
         .eq("id", existing.id);
 
       if (deleteError) {
-        return { ok: false, message: deleteError.message };
+        console.error("[setMediaLogState]", deleteError.message);
+        return { ok: false, message: "Could not update your log. Please try again." };
       }
     }
 
@@ -149,9 +153,10 @@ export async function setMediaLogState(
         .eq("id", existing.id);
 
       if (bareUpdate) {
+        console.error("[setMediaLogState]", bareUpdate.message);
         return {
           ok: false,
-          message: `${bareUpdate.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
+          message: "Could not update your log. Please try again.",
         };
       }
     }
@@ -179,13 +184,18 @@ export async function setMediaLogState(
         });
 
       if (bareInsert) {
+        console.error("[setMediaLogState]", bareInsert.message);
         return {
           ok: false,
-          message: `${bareInsert.message} — ensure column on_list exists (see supabase/user_media_logs.sql).`,
+          message: "Could not update your log. Please try again.",
         };
       }
     }
   }
 
   return { ok: true, state: next, message: "Updated" };
+  } catch (error) {
+    console.error("[setMediaLogState]", safeClientMessage(error));
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
 }

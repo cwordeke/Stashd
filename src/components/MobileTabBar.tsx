@@ -54,7 +54,7 @@ export default function MobileTabBar({ user }: MobileTabBarProps) {
             ? { "data-tutorial": "profile-link" }
             : {})}
           className={cn(
-            "flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+            "flex flex-1 flex-col items-center justify-center gap-1 min-h-11 py-3 text-[11px] font-medium transition-colors",
             tab.active ? "text-emerald-400" : "text-zinc-500",
             !user && tab.label === "Sign in" && !tab.active && "text-emerald-500/80"
           )}

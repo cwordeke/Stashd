@@ -144,7 +144,7 @@ function useFollowToggle(
       onClick={handleToggle}
       aria-pressed={optimistic.isFollowing}
       className={cn(
-        "shrink-0 rounded-md px-3.5 py-1.5 text-[13px] font-medium transition-colors",
+        "shrink-0 min-h-11 rounded-md px-3.5 py-2 text-[13px] font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
         optimistic.isFollowing
           ? "border border-white/10 bg-transparent text-zinc-200 hover:bg-white/[0.05]"

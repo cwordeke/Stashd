@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { safeClientMessage } from "@/lib/server-action-utils";
 import { completedStatusFor } from "@/lib/media-status";
 import {
   isMediaType,
@@ -156,7 +157,8 @@ export async function hasUserLoggedMedia(
 }
 
 export async function logMedia(input: LogMediaInput): Promise<LogMediaResult> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -247,7 +249,8 @@ export async function logMedia(input: LogMediaInput): Promise<LogMediaResult> {
   const diaryRes = await insertDiaryEntry(supabase, diaryPayload);
 
   if (diaryRes.error) {
-    return { ok: false, message: diaryRes.error.message };
+    console.error("[logMedia]", diaryRes.error.message);
+    return { ok: false, message: "Could not save your log. Please try again." };
   }
 
   if (ratingPayload) {
@@ -302,6 +305,10 @@ export async function logMedia(input: LogMediaInput): Promise<LogMediaResult> {
   }
 
   return { ok: true, message: "Logged successfully!" };
+  } catch (error) {
+    console.error("[logMedia]", safeClientMessage(error));
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
 }
 
 const RECENT_REVIEWS_LIMIT = 20;

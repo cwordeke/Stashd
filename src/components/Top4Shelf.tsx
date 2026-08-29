@@ -313,7 +313,7 @@ export default function Top4Shelf({
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={() => removeFromStash(item.stashId, item)}
                       className={cn(
-                        "absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full",
+                        "absolute right-1 top-1 z-10 touch-target flex items-center justify-center rounded-full",
                         "bg-black/70 text-xs text-white opacity-0 transition",
                         "hover:bg-red-600 group-hover:opacity-100 focus-visible:opacity-100"
                       )}

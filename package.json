@@ -9,7 +9,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "strip-logs": "node scripts/strip-console-logs.mjs",
+    "strip-logs:write": "node scripts/strip-console-logs.mjs --write"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

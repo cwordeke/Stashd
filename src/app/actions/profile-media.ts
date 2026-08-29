@@ -142,6 +142,14 @@ async function backfillMediaMeta(
   }>
 ) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.id !== userId) {
+    return;
+  }
+
   const complete = items.filter(
     (item) => item.title && item.title !== "Untitled" && item.thumbnail
   );

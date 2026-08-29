@@ -225,7 +225,7 @@ function FeedRowShell({
       {media?.thumbnail && mediaHref ? (
         <NavLink
           href={mediaHref}
-          className="relative mt-0.5 h-[3.25rem] w-[2.2rem] shrink-0 overflow-hidden rounded-md bg-zinc-800 ring-1 ring-white/10 transition hover:ring-white/25"
+          className="touch-target relative mt-0.5 h-[3.25rem] w-[2.75rem] shrink-0 overflow-hidden rounded-md bg-zinc-800 ring-1 ring-white/10 transition hover:ring-white/25"
           title={media.title}
         >
           <Image
@@ -315,25 +315,31 @@ function UserAvatar({
   username: string;
   avatarUrl: string | null;
 }) {
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- remote avatars vary by host
-      <img
-        src={avatarUrl}
-        alt=""
-        width={32}
-        height={32}
-        className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/10"
-      />
-    );
-  }
-
-  return (
+  const inner = avatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element -- remote avatars vary by host
+    <img
+      src={avatarUrl}
+      alt=""
+      width={32}
+      height={32}
+      className="h-8 w-8 rounded-full object-cover ring-1 ring-white/10"
+    />
+  ) : (
     <span
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600/90 text-xs font-semibold text-white ring-1 ring-white/10"
+      className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600/90 text-xs font-semibold text-white ring-1 ring-white/10"
       aria-hidden
     >
       {username.charAt(0).toUpperCase()}
     </span>
+  );
+
+  return (
+    <NavLink
+      href={`/u/${username}`}
+      className="touch-target flex shrink-0 items-center justify-center"
+      title={username}
+    >
+      {inner}
+    </NavLink>
   );
 }

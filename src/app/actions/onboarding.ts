@@ -45,7 +45,8 @@ export async function checkUsernameAvailable(
 export async function completeOnboarding(
   data: OnboardingData
 ): Promise<OnboardingActionResult> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -104,14 +105,19 @@ export async function completeOnboarding(
       if (fallback.code === "23505") {
         return { ok: false, message: "Username taken" };
       }
-      return { ok: false, message: fallback.message };
+      return { ok: false, message: "Could not save profile. Please try again." };
     }
   }
 
-  await supabase
+  const { error: categoriesError } = await supabase
     .from("profiles")
     .update({ preferred_categories: preferredCategories })
     .eq("id", user.id);
+
+  if (categoriesError) {
+    console.error("[completeOnboarding]", categoriesError.message);
+    return { ok: false, message: "Could not save preferences. Please try again." };
+  }
 
   await supabase.auth.updateUser({
     data: {
@@ -127,4 +133,8 @@ export async function completeOnboarding(
   revalidatePath(`/u/${username}`);
 
   return { ok: true, username };
+  } catch (error) {
+    console.error("[completeOnboarding]", error);
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
 }

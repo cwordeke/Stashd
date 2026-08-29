@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { safeClientMessage } from "@/lib/server-action-utils";
 import { completedStatusFor } from "@/lib/media-status";
 import {
   IMPORT_BATCH_MAX,
@@ -178,7 +179,8 @@ async function upsertRating(
 export async function processImportBatch(
   batch: ImportBatchItem[]
 ): Promise<ProcessImportBatchResult> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -331,4 +333,8 @@ export async function processImportBatch(
   }
 
   return { ok: true, results };
+  } catch (error) {
+    console.error("[processImportBatch]", safeClientMessage(error));
+    return { ok: false, message: "Import failed. Please try again." };
+  }
 }

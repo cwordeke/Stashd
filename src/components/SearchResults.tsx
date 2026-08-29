@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import MediaCard from "@/components/MediaCard";
 import { MediaGridSkeleton } from "@/components/LoadingSkeleton";
 import EmptyState from "@/components/EmptyState";
-import BrandIllustration from "@/components/BrandIllustration";
 import {
   columnsStillLoading,
   emptySearchColumns,
@@ -228,16 +227,9 @@ export default function SearchResults() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6 space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
-            Search
-          </h1>
-          <BrandIllustration
-            id="popcorn"
-            size="sm"
-            className="mx-auto sm:mx-0 sm:shrink-0"
-          />
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-white">
+          Search
+        </h1>
 
         <form onSubmit={handleSubmit} className="flex max-w-xl gap-2">
           <input
@@ -354,7 +346,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-md px-2.5 py-1 text-[13px] transition-colors",
+        "min-h-11 rounded-md px-2.5 py-2 text-[13px] transition-colors",
         active
           ? "bg-white/[0.08] text-white"
           : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300"

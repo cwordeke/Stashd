@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { safeClientMessage } from "@/lib/server-action-utils";
 
 export interface FollowStats {
   followers: number;
@@ -50,53 +51,60 @@ export async function toggleFollow(
   targetUserId: string,
   isCurrentlyFollowing: boolean
 ): Promise<FollowActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { ok: false, message: "Sign in to follow users" };
-  }
-
-  if (!targetUserId) {
-    return { ok: false, message: "Invalid user" };
-  }
-
-  if (user.id === targetUserId) {
-    return { ok: false, message: "You cannot follow yourself" };
-  }
-
-  if (isCurrentlyFollowing) {
-    const { error } = await supabase
-      .from("follows")
-      .delete()
-      .eq("follower_id", user.id)
-      .eq("following_id", targetUserId);
-
-    if (error) {
-      return { ok: false, message: error.message };
+    if (!user) {
+      return { ok: false, message: "Sign in to follow users" };
     }
-  } else {
-    const { error } = await supabase.from("follows").insert({
-      follower_id: user.id,
-      following_id: targetUserId,
-    });
 
-    if (error && error.code !== "23505") {
-      return { ok: false, message: error.message };
+    if (!targetUserId) {
+      return { ok: false, message: "Invalid user" };
     }
-  }
 
-  const names = await usernamesByIds(supabase, [user.id, targetUserId]);
-  for (const username of names.values()) {
-    revalidatePath(`/u/${username}`);
-    revalidatePath(`/u/${username}/followers`);
-    revalidatePath(`/u/${username}/following`);
-  }
-  revalidatePath("/");
+    if (user.id === targetUserId) {
+      return { ok: false, message: "You cannot follow yourself" };
+    }
 
-  return { ok: true, isFollowing: !isCurrentlyFollowing };
+    if (isCurrentlyFollowing) {
+      const { error } = await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", user.id)
+        .eq("following_id", targetUserId);
+
+      if (error) {
+        console.error("[toggleFollow]", error.message);
+        return { ok: false, message: "Could not unfollow. Please try again." };
+      }
+    } else {
+      const { error } = await supabase.from("follows").insert({
+        follower_id: user.id,
+        following_id: targetUserId,
+      });
+
+      if (error && error.code !== "23505") {
+        console.error("[toggleFollow]", error.message);
+        return { ok: false, message: "Could not follow. Please try again." };
+      }
+    }
+
+    const names = await usernamesByIds(supabase, [user.id, targetUserId]);
+    for (const username of names.values()) {
+      revalidatePath(`/u/${username}`);
+      revalidatePath(`/u/${username}/followers`);
+      revalidatePath(`/u/${username}/following`);
+    }
+    revalidatePath("/");
+
+    return { ok: true, isFollowing: !isCurrentlyFollowing };
+  } catch (error) {
+    console.error("[toggleFollow]", safeClientMessage(error));
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
 }
 
 export async function getProfileFollowStats(

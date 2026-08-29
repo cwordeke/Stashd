@@ -505,7 +505,7 @@ export default function ListEditClient({
                   type="button"
                   onClick={() => handleRemoveItem(item.id)}
                   disabled={pending || item.id.startsWith("temp-")}
-                  className="absolute right-1.5 top-1.5 rounded bg-black/70 p-1 text-zinc-300 opacity-0 transition hover:text-red-300 group-hover:opacity-100 disabled:opacity-40"
+                  className="touch-target absolute right-1.5 top-1.5 flex items-center justify-center rounded bg-black/70 text-zinc-300 opacity-0 transition hover:text-red-300 group-hover:opacity-100 disabled:opacity-40"
                   aria-label="Remove"
                 >
                   <TrashIcon className="h-3.5 w-3.5" />
